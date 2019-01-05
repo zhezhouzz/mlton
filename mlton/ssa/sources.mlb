@@ -17,6 +17,8 @@ local
    ssa-tree2.sig
    ssa-tree.fun
    ssa-tree2.fun
+   pssa.sig
+   pssa.fun
    direct-exp.sig
    direct-exp.fun
    analyze.sig
@@ -110,4 +112,6 @@ in
    functor Ssa
    functor Ssa2
    functor SsaToSsa2
+
+   functor Pssa
 end

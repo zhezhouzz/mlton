@@ -6,6 +6,9 @@
  * See the file MLton-LICENSE for details.
  *)
 
-functor Ssa (S: SSA_STRUCTS): SSA = 
-   Simplify (Restore (Shrink (PrePasses (
-   TypeCheck (Analyze (DirectExp (PssaParse (SsaTree (S)))))))))
+signature PSSA = 
+   sig
+      include SSA_TREE
+
+      val pssa : Program.t -> Program.t
+   end

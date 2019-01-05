@@ -583,7 +583,7 @@ let val _ = print "Generate Parallel Ssa\n" in
     stats = Ssa.Program.layoutStats,
     style = Control.ML,
     suffix = "ssa",
-    thunk = fn () => ClosureConvert.closureConvert sxml,
+    thunk = fn () => Ssa.pssa (ClosureConvert.closureConvert sxml),
     typeCheck = Ssa.typeCheck}
 end
 

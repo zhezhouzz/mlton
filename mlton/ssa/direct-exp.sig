@@ -9,7 +9,7 @@
 
 signature DIRECT_EXP_STRUCTS =
   sig
-     include SSA_TREE
+     include PSSA
   end
 
 signature DIRECT_EXP =
