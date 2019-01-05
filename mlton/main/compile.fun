@@ -576,6 +576,7 @@ fun simplifySxml sxml =
    end
 
 fun makeSsa sxml =
+let val _ = print "Generate Parallel Ssa\n" in
    Control.passTypeCheck
    {display = Control.Layouts Ssa.Program.layouts,
     name = "closureConvert",
@@ -584,6 +585,7 @@ fun makeSsa sxml =
     suffix = "ssa",
     thunk = fn () => ClosureConvert.closureConvert sxml,
     typeCheck = Ssa.typeCheck}
+end
 
 fun simplifySsa ssa =
    let
