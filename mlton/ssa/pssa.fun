@@ -13,8 +13,35 @@ val pssa = fn p =>
     case p of Program.T {datatypes, functions, globals, main} =>
     let
         val _ = print "PSSA\n"
-        val len = List.length functions
-        val _ = print ("Num of functions =" ^ (Int.toString len) ^ "\n")
+        val expvar_l = Vector.foldr (globals, [], (fn (stat, r) =>
+            case (Statement.exp stat) of
+              Exp.Const expvar =>
+                let val expvar_str = Const.toString expvar
+                    (* val _ = print (expvar_str ^ "\n") *) in
+                (if String.compare (expvar_str, "\"PSSACOMPRE\"") = EQUAL then
+                    let val _ = print "Got:\n" in
+                    (case (Statement.var stat) of
+                      SOME var =>
+                          let val _ = print ("Got :" ^ (Var.toString var) ^ "\n") in       
+                          (Var.toString var) :: r end
+                    | NONE => r) end
+                else
+                    r)
+                end
+            | _ => r
+        ))
+        val _ = print ("num of PSSA = " ^ (Int.toString (List.length expvar_l)) ^ "\n")
+        val expvar_l_str = List.foldr (expvar_l, "", (fn (v,r) => v ^ " " ^ r))
+        val _ = print ("PSSA in Label:" ^ expvar_l_str ^ "\n")
+        val _ = Program.dfs (p,
+            (fn f =>
+            let
+                val _ = () (* print (Func.toString (Function.name f)) *)
+            in
+                fn () => ()
+            end
+            )
+        )
     in
         p
     end
