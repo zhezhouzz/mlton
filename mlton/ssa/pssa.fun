@@ -94,16 +94,6 @@ fun fold_prim_block f r b =
         r'
     end
 
-(* fun print_prim_block2 b = *)
-(*     fold_prim_block ( *)
-(*         fn _ prim => *)
-(*            let *)
-(*                val name = Prim.Name.toString (Prim.name prim) *)
-(*                val _ = print ("Prim: " ^ name ^ "\n") *)
-(*            in *)
-(*                () *)
-(*            end *)
-(*     ) () b *)
 
 fun print_prim f =
     Function.dfs (
@@ -216,7 +206,7 @@ fun print_compre_blocks f labstart =
                          | _ => false
                     )
                 val has_end = fold_prim_block check_end false b
-                val _ = print ("control... the block has Thread_atomicEnd? " ^ (Bool.toString has_end) ^ "\n")
+                (* val _ = print ("control... the block has Thread_atomicEnd? " ^ (Bool.toString has_end) ^ "\n") *)
             in
                 has_end
             end
@@ -234,7 +224,6 @@ fun print_compre_blocks f labstart =
                             print ((Var.toString var) ^ "\n")
                           | _ => ()
                 val _ = Vector.foreach (stats, print_local)
-                (* val _ = Control.saveToFile ({suffix = lab_str}, Control.ML, b, (Control.Layout Block.layout)) *)
             in
                 ()
             end
@@ -259,7 +248,6 @@ fun find_compre p pssavar_l =
                             then
                                 let
                                     val _ = print "Found Calling PSSA\n"
-                                    (* val _ = Control.saveToFile ({suffix = "pssa"}, Control.ML, b, (Control.Layout Block.layout)) *)
                                     val labstart =
                                         case return of
                                             Return.NonTail {cont, handler} =>
@@ -289,71 +277,44 @@ fun find_compre p pssavar_l =
 
 
 val pssa =
- fn p_old =>
-    let
-        val p = p_old
-        (* val p = Control.pass2 {display = Control.Layouts Program.layouts, *)
-        (*                        name = "closureConvert", *)
-        (*                        suffix = "ssa", *)
-        (*                        stats = Program.layoutStats, *)
-        (*                        style = Control.ML, *)
-        (*                        thunk = fn () => p_old} *)
-    in
+ fn p =>
     case p of
         Program.T {datatypes, functions, globals, main} =>
         let
             val _ = print "PSSA\n"
             val pssavar_l = Vector.foldr (
-                    globals, [], (fn (stat, r) =>
-                                     case (Statement.exp stat) of
-                                         Exp.Const expvar =>
-                                         let
-                                             val expvar_str = Const.toString expvar
-                                         in
-                                             if String.compare (expvar_str, "\"PSSACOMPRE\"") = EQUAL
-                                             then
-                                                 let
-                                                     val _ = print "Got:\n"
-                                                     (* val _ = Control.saveToFile ({suffix = "pssa"}, Control.ML, stat, (Control.Layout Statement.layout)) *)
-                                                 in
-                                                     case (Statement.var stat) of
-                                                          SOME var =>
-                                                          let
-                                                              val _ = print ("Got :" ^ (Var.toString var) ^ "\n")
-                                                          in
-                                                              var :: r
-                                                          end
-                                                        | NONE => r
-                                                 end
-                                             else
-                                                 r
-                                         end
-                                       | _ => r
-                                 )
+                    globals, [], (
+                        fn (stat, r) =>
+                           case (Statement.exp stat) of
+                               Exp.Const expvar =>
+                               let
+                                   val expvar_str = Const.toString expvar
+                               in
+                                   if String.compare (expvar_str, "\"PSSACOMPRE\"") = EQUAL
+                                   then
+                                       let
+                                           val _ = print "Got:\n"
+                                       in
+                                           case (Statement.var stat) of
+                                               SOME var =>
+                                               let
+                                                   val _ = print ("Got :" ^ (Var.toString var) ^ "\n")
+                                               in
+                                                   var :: r
+                                               end
+                                             | NONE => r
+                                       end
+                                   else
+                                       r
+                               end
+                             | _ => r
+                    )
                 )
-            val _ = if (List.length pssavar_l) > 0
-                    then
-                        Control.saveToFile ({suffix = "ssa"}, Control.ML, p, Control.Layouts Program.layouts)
-                        (* let val _ = Control.pass3 {display = Control.Layouts Program.layouts, *)
-                        (*                       name = "closureConvert", *)
-                        (*                       suffix = "ssa", *)
-                        (*                       stats = Program.layoutStats, *)
-                        (*                       style = Control.ML, *)
-                        (*                       thunk = fn () => p} in () end *)
-                    else
-                        ()
             val _ = find_compre p pssavar_l
-            (* val _ = Control.maybeSaveToFile ({name = "closureConvert", suffix = "pssa"}, Control.ML, p, Control.Layouts Program.layouts) *)
-            (* val _ = Control.pass2 {display = Control.Layouts Program.layouts, *)
-            (*                       name = "closureConvert", *)
-            (*                       suffix = "ssapssa", *)
-            (*                       stats = Program.layoutStats, *)
-            (*                       style = Control.ML, *)
-            (*                       thunk = fn () => p} *)
         in
             p
         end
-    end
+
 end
 
 functor Pssa (S: SSA_TREE_STRUCTS): PSSA =
