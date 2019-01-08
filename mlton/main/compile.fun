@@ -576,20 +576,18 @@ fun simplifySxml sxml =
    end
 
 fun makeSsa sxml =
-let val _ = print "Generate Parallel Ssa\n" in
    Control.passTypeCheck
    {display = Control.Layouts Ssa.Program.layouts,
     name = "closureConvert",
     stats = Ssa.Program.layoutStats,
     style = Control.ML,
     suffix = "ssa",
-    thunk = fn () => Ssa.pssa (ClosureConvert.closureConvert sxml),
+    thunk = fn () => (ClosureConvert.closureConvert sxml),
     typeCheck = Ssa.typeCheck}
-end
 
 fun simplifySsa ssa =
-   let
-      val ssa =
+    let
+       val ssa =
          Control.passTypeCheck
          {display = Control.Layouts Ssa.Program.layouts,
           name = "ssaSimplify",
@@ -598,6 +596,8 @@ fun simplifySsa ssa =
           suffix = "ssa",
           thunk = fn () => Ssa.simplify ssa,
           typeCheck = Ssa.typeCheck}
+       val _ = print "Generate Parallel Ssa\n"
+       val ssa = Ssa.pssa ssa
       open Control
       val _ =
          if !keepSSA

@@ -180,7 +180,7 @@ fun block_dfs f lab r v control =
                         val _ = Array.update (visited, i, true)
                         val b as Block.T {transfer, ...} =
                             Vector.sub (blocks, i)
-                        val r' = v r b
+                        val r' = v (r, b)
                     in
                         if control b
                         then
@@ -205,8 +205,100 @@ fun block_dfs f lab r v control =
     end
 
 
+fun print_compre_blocks f labstart =
+    let
+        fun control b =
+            let
+                fun check_end (r, prim) =
+                    r orelse (
+                        case (Prim.name prim) of
+                            Prim.Name.Thread_atomicEnd => true
+                         | _ => false
+                    )
+                val has_end = fold_prim_block check_end false b
+                val _ = print ("control... the block has Thread_atomicEnd? " ^ (Bool.toString has_end) ^ "\n")
+            in
+                has_end
+            end
+        fun v (r, b) =
+            let
+                val lab = Block.label b
+                val lab_str = Label.toString lab
+                val _ = print ("visiting Label: " ^ lab_str ^ "\nLocal variables:\n")
+                val stats = Block.statements b
+                fun print_local stat =
+                    case stat of
+                        Statement.T {var = var, ...} =>
+                        case var of
+                            SOME var =>
+                            print ((Var.toString var) ^ "\n")
+                          | _ => ()
+                val _ = Vector.foreach (stats, print_local)
+                (* val _ = Control.saveToFile ({suffix = lab_str}, Control.ML, b, (Control.Layout Block.layout)) *)
+            in
+                ()
+            end
+        val _ = block_dfs f labstart () v control
+    in
+        ()
+    end
+
+fun find_compre p pssavar_l =
+    let
+        fun visit_f f =
+            let
+                val bs =
+                    Function.blocks f
+                fun visit_b b =
+                    let
+                        val trans = Block.transfer b
+                    in
+                        case trans of
+                            Transfer.Call {args, func, return} =>
+                            if (vec_in_list args pssavar_l)
+                            then
+                                let
+                                    val _ = print "Found Calling PSSA\n"
+                                    (* val _ = Control.saveToFile ({suffix = "pssa"}, Control.ML, b, (Control.Layout Block.layout)) *)
+                                    val labstart =
+                                        case return of
+                                            Return.NonTail {cont, handler} =>
+                                            print_compre_blocks f cont
+                                          | _ => ()
+                                in
+                                    ()
+                                end
+                            else
+                                ()
+                          | _ => ()
+                    end
+                val _ =
+                    Vector.foreach (bs, visit_b)
+            in
+                ()
+            end
+        val _ = Program.dfs (p, (fn f =>
+                                    let val _ = visit_f f
+                                    in
+                                        fn () => ()
+                                    end)
+                            )
+    in
+        ()
+    end
+
+
 val pssa =
- fn p =>
+ fn p_old =>
+    let
+        val p = p_old
+        (* val p = Control.pass2 {display = Control.Layouts Program.layouts, *)
+        (*                        name = "closureConvert", *)
+        (*                        suffix = "ssa", *)
+        (*                        stats = Program.layoutStats, *)
+        (*                        style = Control.ML, *)
+        (*                        thunk = fn () => p_old} *)
+    in
     case p of
         Program.T {datatypes, functions, globals, main} =>
         let
@@ -221,7 +313,9 @@ val pssa =
                                              if String.compare (expvar_str, "\"PSSACOMPRE\"") = EQUAL
                                              then
                                                  let
-                                                     val _ = print "Got:\n" in
+                                                     val _ = print "Got:\n"
+                                                     (* val _ = Control.saveToFile ({suffix = "pssa"}, Control.ML, stat, (Control.Layout Statement.layout)) *)
+                                                 in
                                                      case (Statement.var stat) of
                                                           SOME var =>
                                                           let
@@ -237,108 +331,29 @@ val pssa =
                                        | _ => r
                                  )
                 )
-            val _ = print ("num of PSSA = " ^ (Int.toString (List.length pssavar_l)) ^ "\n")
-            val _ = Program.dfs (
-                    p, (fn f => let val _ = print "afunction\n" in fn () => () end
-                       )
-                )
-            val _ = Program.dfs (
-                p, (fn f =>
-                       let
-                           val bs = Function.blocks f
-                           (* val pssa_list = Vector.foldr ( *)
-                           (*         bs, [], (fn (b, r) => *)
-                           (*                        let *)
-                           (*                            val trans = Block.transfer b *)
-                           (*                            val if_pssa = case trans of *)
-                           (*                                              Transfer.Call {args, func, return} => *)
-                           (*                                              if vec_in_list args pssavar_l *)
-                           (*                                              then *)
-                           (*                                                  let *)
-                           (*                                                      val _ = print "Found\n" *)
-                           (*                                                      val _ = Return.foreachLabel (return, (fn lab => *)
-                           (*                                                                                               print_prim_block (labelBlock f lab) *)
-                           (*                                                                                           ) *)
-                           (*                                                                           ) *)
-                           (*                                                      val r' = *)
-                           (*                                                             case return of *)
-                           (*                                                                 Return.NonTail {cont, handler} => *)
-                           (*                                                                 let *)
-                           (*                                                                     val _ = print ("NonTail cont " ^ (Label.toString cont) ^ "\n") *)
-                           (*                                                                     val _ = print_prim_block b *)
-                           (*                                                                     val _ = case handler of *)
-                           (*                                                                                 Handler.Handle hl => print ("Handle " ^ (Label.toString hl) ^ "\n") *)
-                           (*                                                                               | _ => () *)
-                           (*                                                                 in *)
-                           (*                                                                     cont :: r *)
-                           (*                                                                 end *)
-                           (*                                                               | _ => r *)
-                           (*                                                  in *)
-                           (*                                                      r' *)
-                           (*                                                  end *)
-                           (*                                              else *)
-                           (*                                                  r *)
-                           (*                                            | _ => r *)
-                           (*                        in *)
-                           (*                            r *)
-                           (*                        end *)
-                           (*                    ) *)
-                           (*     ) *)
-                           val has_pssa = Vector.foldr (
-                                   bs, false, (fn (b, r) =>
-                                                  let
-                                                      val trans = Block.transfer b
-                                                      val if_pssa = case trans of
-                                                                        Transfer.Call {args, func, return} =>
-                                                                        r orelse (vec_in_list args pssavar_l)
-                                                                      | _ => r
-                                                  in
-                                                      if_pssa
-                                                  end
-                                              )
-                               )
-                           val _ = if has_pssa
-                                   then
-                                       let
-                                           val _ = print "find mlton thread\n"
-                                           val _ = print_prim f
-                                           val _ = Function.dfs (
-                                                   f, (fn b =>
-                                                          let
-                                                              val if_has_thread = fold_prim_block (
-                                                                      fn (r, prim) =>
-                                                                         let
-                                                                             val name = Prim.Name.toString (Prim.name prim)
-                                                                             val _ = print ("-" ^ name ^ "\n")
-                                                                             val r' = String.compare (name, "Thread_atomicBegin") = EQUAL
-                                                                         in
-                                                                             r' orelse r
-                                                                         end
-                                                                  ) false b
-                                                              val _ = if if_has_thread
-                                                                      then
-                                                                          print_prim_block b
-                                                                      else
-                                                                          ()
-                                                          in
-                                                              fn () => ()
-                                                          end
-                                                      )
-                                               )
-                                       in
-                                           ()
-                                       end
-                                   else
-                                       ()
-                       in
-                           fn () => ()
-                       end
-                   )
-            )
-    in
-        p
+            val _ = if (List.length pssavar_l) > 0
+                    then
+                        Control.saveToFile ({suffix = "ssa"}, Control.ML, p, Control.Layouts Program.layouts)
+                        (* let val _ = Control.pass3 {display = Control.Layouts Program.layouts, *)
+                        (*                       name = "closureConvert", *)
+                        (*                       suffix = "ssa", *)
+                        (*                       stats = Program.layoutStats, *)
+                        (*                       style = Control.ML, *)
+                        (*                       thunk = fn () => p} in () end *)
+                    else
+                        ()
+            val _ = find_compre p pssavar_l
+            (* val _ = Control.maybeSaveToFile ({name = "closureConvert", suffix = "pssa"}, Control.ML, p, Control.Layouts Program.layouts) *)
+            (* val _ = Control.pass2 {display = Control.Layouts Program.layouts, *)
+            (*                       name = "closureConvert", *)
+            (*                       suffix = "ssapssa", *)
+            (*                       stats = Program.layoutStats, *)
+            (*                       style = Control.ML, *)
+            (*                       thunk = fn () => p} *)
+        in
+            p
+        end
     end
-
 end
 
 functor Pssa (S: SSA_TREE_STRUCTS): PSSA =
