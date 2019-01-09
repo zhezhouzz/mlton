@@ -317,7 +317,7 @@ structure Thread =
       type preThread = PreThread.t
       type thread = Thread.t
 
-      val parallelBegin = _prim "Thread_parallelBegin" : unit -> unit;
+      val parallelBegin = _prim "Thread_parallelBegin" : NullString8.t -> unit;
       val parallelEnd = _prim "Thread_parallelEnd" : unit -> unit;
       val atomicState = _prim "Thread_atomicState": unit -> Word32.word;
       val atomicBegin = _prim "Thread_atomicBegin": unit -> unit;

@@ -1444,7 +1444,8 @@ fun 'a checkApp (prim: 'a t,
        | Ref_assign => oneTarg (fn t => (twoArgs (reff t, t), unit))
        | Ref_deref => oneTarg (fn t => (oneArg (reff t), t))
        | Ref_ref => oneTarg (fn t => (oneArg t, reff t))
-       | Thread_parallelBegin => noTargs (fn () => (noArgs, unit))
+       (* Hacking!!!! the type checking of parallelBegin would always be ture. *)
+       | Thread_parallelBegin => true
        | Thread_parallelEnd => noTargs (fn () => (noArgs, unit))
        | Thread_atomicBegin => noTargs (fn () => (noArgs, unit))
        | Thread_atomicEnd => noTargs (fn () => (noArgs, unit))

@@ -30,7 +30,7 @@ local
 in
    val atomicBegin = atomicBegin
    val atomicEnd = atomicEnd
-   val parallelBegin = parallelBegin
+   val parallelBegin = fn () => parallelBegin (Primitive.NullString8.fromString "")
    val parallelEnd = parallelEnd
    val atomicState = fn () =>
       case atomicState () of
