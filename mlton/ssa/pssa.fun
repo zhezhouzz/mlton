@@ -275,6 +275,80 @@ fun find_compre p pssavar_l =
         ()
     end
 
+fun print_local stat =
+    case stat of
+        Statement.T {var = var, ...} =>
+        case var of
+            SOME var =>
+            print ((Var.toString var) ^ "\n")
+          | _ => ()
+
+fun find_parallel p =
+    let
+        fun visit_f f =
+            let
+                val bs =
+                    Function.blocks f
+                fun visit_b b =
+                    let
+                        fun check_begin (r, prim) =
+                            r orelse (
+                                case (Prim.name prim) of
+                                    Prim.Name.Thread_parallelBegin => true
+                                  | _ => false
+                            )
+                        fun check_end (r, prim) =
+                            r orelse (
+                                case (Prim.name prim) of
+                                    Prim.Name.Thread_parallelEnd => true
+                                  | _ => false
+                            )
+                        val has_begin = fold_prim_block check_begin false b
+                    in
+                        if has_begin
+                        then
+                            let
+                                val labstart = Block.label b
+                                fun control b =
+                                    let
+                                        val has_end = fold_prim_block check_end false b
+                                        val _ = print ("control... the block has Thread_parallelEnd? " ^ (Bool.toString has_end) ^ "\n")
+                                    in
+                                        has_end
+                                    end
+                                fun v (r, b) =
+                                    let
+                                        val lab = Block.label b
+                                        val lab_str = Label.toString lab
+                                        val _ = print ("visiting Label: " ^ lab_str ^ "\nLocal variables:\n")
+                                        val stats = Block.statements b
+                                        val _ = Vector.foreach (stats, print_local)
+                                    in
+                                        ()
+                                    end
+                                val _ = block_dfs f labstart () v control
+                            in
+                                ()
+                            end
+                        else
+                            ()
+                    end
+                val _ =
+                    Vector.foreach (bs, visit_b)
+            in
+                ()
+            end
+        val _ = Program.dfs (p, (fn f =>
+                                    let val _ = visit_f f
+                                    in
+                                        fn () => ()
+                                    end)
+                            )
+    in
+        ()
+    end
+
+
 
 val pssa =
  fn p =>
@@ -310,7 +384,8 @@ val pssa =
                              | _ => r
                     )
                 )
-            val _ = find_compre p pssavar_l
+            (* val _ = find_compre p pssavar_l *)
+            val _ = find_parallel p
         in
             p
         end
