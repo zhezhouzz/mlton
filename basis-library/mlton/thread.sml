@@ -30,6 +30,8 @@ local
 in
    val atomicBegin = atomicBegin
    val atomicEnd = atomicEnd
+   val parallelBegin = parallelBegin
+   val parallelEnd = parallelEnd
    val atomicState = fn () =>
       case atomicState () of
          0wx0 => AtomicState.NonAtomic
@@ -38,6 +40,9 @@ end
 
 fun atomically f =
    (atomicBegin (); DynamicWind.wind (f, atomicEnd))
+
+fun parallelly f =
+    (parallelBegin (); DynamicWind.wind (f, parallelEnd))
 
 datatype 'a thread =
    Dead

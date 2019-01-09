@@ -147,6 +147,8 @@ datatype 'a t =
  | Thread_atomicBegin (* to rssa *)
  | Thread_atomicEnd (* to rssa *)
  | Thread_atomicState (* to rssa *)
+ | Thread_parallelBegin
+ | Thread_parallelEnd
  | Thread_copy (* to rssa (as runtime C fn) *)
  | Thread_copyCurrent (* to rssa (as runtime C fn) *)
  | Thread_returnToC (* codegen *)
@@ -323,6 +325,8 @@ fun toString (n: 'a t): string =
        | String_toWord8Vector => "String_toWord8Vector"
        | Thread_atomicBegin => "Thread_atomicBegin"
        | Thread_atomicEnd => "Thread_atomicEnd"
+       | Thread_parallelBegin => "Thread_parallelBegin"
+       | Thread_parallelEnd => "Thread_parallelEnd"
        | Thread_atomicState => "Thread_atomicState"
        | Thread_copy => "Thread_copy"
        | Thread_copyCurrent => "Thread_copyCurrent"
@@ -489,6 +493,8 @@ val equals: 'a t * 'a t -> bool =
     | (Ref_deref, Ref_deref) => true
     | (Ref_ref, Ref_ref) => true
     | (String_toWord8Vector, String_toWord8Vector) => true
+    | (Thread_parallelBegin, Thread_parallelBegin) => true
+    | (Thread_parallelEnd, Thread_parallelEnd) => true
     | (Thread_atomicBegin, Thread_atomicBegin) => true
     | (Thread_atomicEnd, Thread_atomicEnd) => true
     | (Thread_atomicState, Thread_atomicState) => true
@@ -660,6 +666,8 @@ val map: 'a t * ('a -> 'b) -> 'b t =
     | Ref_deref => Ref_deref
     | Ref_ref => Ref_ref
     | String_toWord8Vector => String_toWord8Vector
+    | Thread_parallelBegin => Thread_parallelBegin
+    | Thread_parallelEnd => Thread_parallelEnd
     | Thread_atomicBegin => Thread_atomicBegin
     | Thread_atomicEnd => Thread_atomicEnd
     | Thread_atomicState => Thread_atomicState
@@ -923,6 +931,8 @@ val kind: 'a t -> Kind.t =
        | Ref_deref => DependsOnState
        | Ref_ref => Moveable
        | String_toWord8Vector => Functional
+       | Thread_parallelBegin => SideEffect
+       | Thread_parallelEnd => SideEffect
        | Thread_atomicBegin => SideEffect
        | Thread_atomicEnd => SideEffect
        | Thread_atomicState => DependsOnState
@@ -1104,6 +1114,8 @@ in
        Ref_deref,
        Ref_ref,
        String_toWord8Vector,
+       Thread_parallelBegin,
+       Thread_parallelEnd,
        Thread_atomicBegin,
        Thread_atomicEnd,
        Thread_atomicState,
@@ -1432,6 +1444,8 @@ fun 'a checkApp (prim: 'a t,
        | Ref_assign => oneTarg (fn t => (twoArgs (reff t, t), unit))
        | Ref_deref => oneTarg (fn t => (oneArg (reff t), t))
        | Ref_ref => oneTarg (fn t => (oneArg t, reff t))
+       | Thread_parallelBegin => noTargs (fn () => (noArgs, unit))
+       | Thread_parallelEnd => noTargs (fn () => (noArgs, unit))
        | Thread_atomicBegin => noTargs (fn () => (noArgs, unit))
        | Thread_atomicEnd => noTargs (fn () => (noArgs, unit))
        | Thread_atomicState => noTargs (fn () => (noArgs, word32))

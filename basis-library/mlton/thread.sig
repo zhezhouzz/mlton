@@ -18,6 +18,10 @@ signature MLTON_THREAD =
       val atomicEnd: unit -> unit
       val atomicState: unit -> AtomicState.t
 
+      val parallelBegin: unit -> unit
+      val parallelEnd: unit -> unit
+      val parallelly : (unit -> 'a) -> 'a
+
       structure Runnable :
          sig
             type t
