@@ -348,7 +348,24 @@ fun find_parallel p =
         ()
     end
 
-
+fun add_global_strings g strs =
+    let
+        fun str2stat str =
+            let
+                val new_exp = Exp.Const (Const.string str)
+                val new_ty = Type.vector (Type.word WordSize.word8)
+                val new_var = SOME (Var.newString "parallel")
+            in
+                Statement.T {exp = new_exp,
+                             ty = new_ty,
+                             var = new_var}
+            end
+        val stats = List.map (strs, fn str => str2stat str)
+        val stats_vec = Vector.fromList stats
+        val new_g = Vector.concat [g, stats_vec]
+    in
+        new_g
+    end
 
 val pssa =
  fn p =>
@@ -356,38 +373,39 @@ val pssa =
         Program.T {datatypes, functions, globals, main} =>
         let
             val _ = print "PSSA\n"
-            val pssavar_l = Vector.foldr (
-                    globals, [], (
-                        fn (stat, r) =>
-                           case (Statement.exp stat) of
-                               Exp.Const expvar =>
-                               let
-                                   val expvar_str = Const.toString expvar
-                               in
-                                   if String.compare (expvar_str, "\"PSSACOMPRE\"") = EQUAL
-                                   then
-                                       let
-                                           val _ = print "Got:\n"
-                                       in
-                                           case (Statement.var stat) of
-                                               SOME var =>
-                                               let
-                                                   val _ = print ("Got :" ^ (Var.toString var) ^ "\n")
-                                               in
-                                                   var :: r
-                                               end
-                                             | NONE => r
-                                       end
-                                   else
-                                       r
-                               end
-                             | _ => r
-                    )
-                )
+            (* val pssavar_l = Vector.foldr ( *)
+            (*         globals, [], ( *)
+            (*             fn (stat, r) => *)
+            (*                case (Statement.exp stat) of *)
+            (*                    Exp.Const expvar => *)
+            (*                    let *)
+            (*                        val expvar_str = Const.toString expvar *)
+            (*                    in *)
+            (*                        if String.compare (expvar_str, "\"PSSACOMPRE\"") = EQUAL *)
+            (*                        then *)
+            (*                            let *)
+            (*                                val _ = print "Got:\n" *)
+            (*                            in *)
+            (*                                case (Statement.var stat) of *)
+            (*                                    SOME var => *)
+            (*                                    let *)
+            (*                                        val _ = print ("Got :" ^ (Var.toString var) ^ "\n") *)
+            (*                                    in *)
+            (*                                        var :: r *)
+            (*                                    end *)
+            (*                                  | NONE => r *)
+            (*                            end *)
+            (*                        else *)
+            (*                            r *)
+            (*                    end *)
+            (*                  | _ => r *)
+            (*         ) *)
+            (*     ) *)
             (* val _ = find_compre p pssavar_l *)
             val _ = find_parallel p
+            val new_g = add_global_strings globals ["PSSATEST"]
         in
-            p
+            Program.T {datatypes = datatypes, functions = functions, globals = new_g, main = main}
         end
 
 end
