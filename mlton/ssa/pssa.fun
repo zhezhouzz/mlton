@@ -311,8 +311,8 @@ fun add_global_strings g varstrs =
 
 datatype walkstate =
          GotNone
-         | GotBegin
-         | GotEnd
+         | GotBegin of (Var.t * string)
+         | GotEnd of (Var.t * string)
 
 fun check_begin (r, prim) =
     r orelse (
@@ -328,143 +328,238 @@ fun check_end (r, prim) =
           | _ => false
     )
 
-fun find_parallel p =
+fun error_headle str = print ("pssa_error: " ^ str ^ "\n")
+
+fun pssa_walk_s ((stat:Statement.t), walkstate) =
     let
-        fun visit_f f =
-            let
-                val bs =
-                    Function.blocks f
-                fun local_b b =
-                     let
-                                val labstart = Block.label b
-                                fun control b =
-                                    let
-                                        val has_end = fold_prim_block check_end false b
-                                        val _ = print ("control... the block has Thread_parallelEnd? " ^ (Bool.toString has_end) ^ "\n")
-                                    in
-                                        has_end
-                                    end
-                                fun v (r, b) =
-                                    let
-                                        val lab = Block.label b
-                                        val lab_str = Label.toString lab
-                                        val _ = print ("visiting Label: " ^ lab_str ^ "\nLocal variables:\n")
-                                        val stats = Block.statements b
-                                        fun walker (stat, (str, walkstate)) =
-                                            let
-                                                val new_state =
-                                                case stat of
-                                                    Statement.T {exp, ty, var} =>
-                                                    case exp of
-                                                        Exp.PrimApp {args, prim, targs} =>
-                                                        (case (Prim.name prim) of
-                                                             Prim.Name.Thread_parallelBegin =>
-                                                             GotBegin
-                                                           | Prim.Name.Thread_parallelEnd =>
-                                                             GotEnd
-                                                           | _ => walkstate)
-                                                          | _ => walkstate
-                                                val new_str =
-                                                    case new_state of
-                                                        GotNone => (str ^ " " ^ (string_local stat))
-                                                      | GotBegin =>
-                                                        (case walkstate of
-                                                            GotNone => ""
-                                                          | GotBegin => (str ^ " " ^ (string_local stat))
-                                                          | GotEnd =>
-                                                            let
-                                                                val _ = print "BAD ERROR: Two parallel overlaped!\n"
-                                                            in
-                                                                ""
-                                                            end)
-                                                      | GotEnd => str
-                                            in
-                                                (new_str, new_state)
-                                            end
-                                        val (str, _) = Vector.fold (stats, ("", GotNone), walker)
-                                        val r = r ^ str
-                                    in
-                                        r
-                                    end
-                                val loc_str = block_dfs f labstart "" v control
-                            in
-                                loc_str
-                     end
-                fun visit_b (b, r) =
+        fun normal_case var =
+            case var of
+                NONE => (stat, walkstate)
+              | SOME statvar =>
+                case walkstate of
+                    GotBegin (var, str) =>
                     let
-                        val has_begin = fold_prim_block check_begin false b
+                        val new_str = str ^ " " ^ (Var.toString statvar)
                     in
-                        if has_begin
-                        then
-                            let
-                                val loc_str = local_b b
-                                val _ = print ("local_str = " ^ loc_str ^ "\n")
-                                val new_var = SOME (Var.newString "parallel")
-                                val r' = (new_var, loc_str) :: r
-                            in
-                                r'
-                            end
-                        else
-                            r
+                        (stat, (GotBegin (var, new_str)))
                     end
-                val varstats =
-                    Vector.fold (bs, [],  visit_b)
-            in
-                varstats
-            end
-        val multable_list = ref []
-        val _ = Program.dfs (p, (fn f =>
-                                    let
-                                        val varstats = visit_f f
-                                        val _ = multable_list := varstats @ (!multable_list)
-                                    in
-                                        fn () => ()
-                                    end)
-                            )
+                  | _ => (stat, walkstate)
+        val (new_stat, new_state) =
+            case stat of
+        Statement.T {exp, ty, var} =>
+        case exp of
+            Exp.PrimApp {args, prim, targs} =>
+            (case (Prim.name prim) of
+                 Prim.Name.Thread_parallelBegin =>
+                 (case walkstate of
+                      GotNone =>
+                      let
+                          val new_var = Var.newString "parallel"
+                          val _ = print ("pssa_walk_s: " ^ (Var.toString new_var) ^ "\n")
+                          val new_state = GotBegin (new_var, "")
+                          val args = Vector.new1 new_var
+                          val new_stat = Statement.T {exp = Exp.PrimApp {args = args, prim = prim, targs = targs}, ty = ty, var = var}
+                      in
+                          (new_stat, new_state)
+                      end
+                    | _ =>
+                      let
+                          val _ = error_headle "statement"
+                      in
+                          (stat, walkstate)
+                      end
+                 )
+               | Prim.Name.Thread_parallelEnd =>
+                 (case walkstate of
+                      GotBegin (var, str) =>
+                      (stat, (GotEnd (var, str)))
+                    | _ =>
+                      let
+                          val _ = error_headle "statement"
+                      in
+                          (stat, walkstate)
+                      end
+                 )
+               | _ => normal_case var
+            )
+          | _ => normal_case var
     in
-        !multable_list
+        (new_stat, new_state)
     end
+
+fun has_parallel_s s =
+    case s of
+        Statement.T {exp, ty, var} =>
+        case exp of
+            Exp.PrimApp {args, prim, targs} =>
+            (case (Prim.name prim) of
+                 Prim.Name.Thread_parallelBegin => true
+               | _ => false)
+          | _ => false
+
+fun has_parallel_b b =
+    let
+        val stats = Block.statements b
+    in
+        Vector.exists (stats, has_parallel_s)
+    end
+
+fun pssa_walk_b (b, walkstate) =
+    let
+        val stats = Block.statements b
+        val (new_stats, walkstate) =
+            Vector.fold (stats, ([], walkstate), (
+                             fn (stat, (new_stats, walkstate)) =>
+                                let
+                                    val (stat', walkstate') = pssa_walk_s (stat, walkstate)
+                                in
+                                    ((new_stats @ [stat']), walkstate')
+                                end
+                        ))
+        val new_b = case b of
+        Block.T {args, label, statements, transfer} =>
+        Block.T {args = args, label = label, statements = (Vector.fromList new_stats), transfer = transfer}
+    in
+
+        (new_b, walkstate)
+    end
+
+fun merge_local rs =
+    let
+        val resultr = ref []
+        fun merge r =
+            List.foreach (r, (fn (var, str) =>
+                                 resultr :=
+                                 List.fold (!resultr, [], (fn ((var', str'), tmp) =>
+                                                              if Var.equals (var, var')
+                                                              then
+                                                                  (var', (str' ^ str)) :: tmp
+                                                              else
+                                                                  (var', str') :: tmp
+                                           ))
+                         ))
+        val _ = List.foreach (rs, merge)
+    in
+        !resultr
+    end
+
+fun pssa_walker_f f =
+    let
+        val {blocks, start, ...} = Function.dest f
+        val numBlocks = Vector.length blocks
+        val {get = labelIndex, set = setLabelIndex, rem, ...} =
+            Property.getSetOnce (Label.plist,
+                                 Property.initRaise ("index", Label.layout))
+        val _ = Vector.foreachi (blocks, fn (i, Block.T {label, ...}) =>
+                                            setLabelIndex (label, i))
+        val visited = Array.array (numBlocks, false)
+        val new_bs = Array.fromVector blocks
+        fun visit (l: Label.t) walkstate =
+            let
+                val i = labelIndex l
+                val _ = print ("pssa_walk_f: " ^ (Label.toString l) ^ "\n")
+            in
+                if Array.sub (visited, i)
+                then NONE
+                else
+                    let
+                        val _ = Array.update (visited, i, true)
+                        val b as Block.T {transfer, ...} =
+                            Vector.sub (blocks, i)
+                        val (newb, walkstate) = pssa_walk_b (b, walkstate)
+                        val _ = Array.update (new_bs, i, newb)
+                        val (new_state, orest, if_continue) = case walkstate of
+                                                    GotNone => (GotNone, NONE, false)
+                                                  | GotBegin (var, str) =>
+                                                    (GotBegin (var, ""), (SOME (var, str)), true)
+                                                  | GotEnd (var, str) =>
+                                                    (GotNone, (SOME (var, str)), false)
+                        val nexts = if if_continue
+                                    then
+                                        block_normal_next f b
+                                    else
+                                        []
+                        val orest = List.foldr (
+                                nexts, orest, (fn (lab, orest) =>
+                                                 let
+                                                     val tmp = visit lab new_state
+                                                 in
+                                                     case tmp of
+                                                         NONE => orest
+                                                       | SOME (var', str') =>
+                                                         case orest of
+                                                             NONE => SOME (var', str')
+                                                           | SOME (var, str) =>
+                                                             SOME (var, (str ^ str'))
+                                                 end
+                                             )
+                            )
+                        (* val new_r = merge_local (r :: rest :: rs) *)
+                    in
+                        orest
+                    end
+            end
+        val paralel_list = Vector.fold (blocks, [], (fn (b, r) =>
+                                                        if has_parallel_b b
+                                                        then
+                                                            (Block.label b) :: r
+                                                        else
+                                                            r
+                                       ))
+        val r = List.fold (paralel_list, [], (fn (l, r) =>
+                                                 let
+                                                     val orest = visit l GotNone
+                                                 in
+                                                     case orest of
+                                                         NONE =>
+                                                         let
+                                                             val _ = print "BAD ERROR\n"
+                                                         in
+                                                             r
+                                                         end
+                                                       | SOME rest => rest :: r
+                                                 end
+                          ))
+        val _ = Vector.foreach (blocks, rem o Block.label)
+        val {args, blocks, mayInline, name, raises, returns, start} = Function.dest f
+        val new_f = Function.new {args = args, blocks = (Array.toVector new_bs), mayInline = mayInline, name = name, raises = raises, returns = returns, start = start}
+    in
+        (new_f, r)
+    end
+
+fun pssa_walker_p p =
+    let
+        val (functions_new, r) = case p of
+                                     Program.T {functions, ...} =>
+                    List.fold (functions, ([], []), (fn (f, (new_fs, r)) =>
+                                                        let
+                                                            val (new_f, new_r) = pssa_walker_f f
+                                                        in
+                                                            ((new_f :: new_fs), (new_r @ r))
+                                                        end
+                              ))
+        val varstats = List.map (r, (fn (var, str) =>
+                                        (SOME var, str)
+                                    )
+                                )
+        val new_g = case p of
+                        Program.T {globals, ...} =>
+                        add_global_strings globals varstats
+    in
+        case p of
+            Program.T {datatypes, functions, globals, main} =>
+            Program.T {datatypes = datatypes, functions = functions_new, globals = new_g, main = main}
+    end
+
 
 val pssa =
  fn p =>
-    case p of
-        Program.T {datatypes, functions, globals, main} =>
-        let
-            val _ = print "PSSA\n"
-            (* val pssavar_l = Vector.foldr ( *)
-            (*         globals, [], ( *)
-            (*             fn (stat, r) => *)
-            (*                case (Statement.exp stat) of *)
-            (*                    Exp.Const expvar => *)
-            (*                    let *)
-            (*                        val expvar_str = Const.toString expvar *)
-            (*                    in *)
-            (*                        if String.compare (expvar_str, "\"PSSACOMPRE\"") = EQUAL *)
-            (*                        then *)
-            (*                            let *)
-            (*                                val _ = print "Got:\n" *)
-            (*                            in *)
-            (*                                case (Statement.var stat) of *)
-            (*                                    SOME var => *)
-            (*                                    let *)
-            (*                                        val _ = print ("Got :" ^ (Var.toString var) ^ "\n") *)
-            (*                                    in *)
-            (*                                        var :: r *)
-            (*                                    end *)
-            (*                                  | NONE => r *)
-            (*                            end *)
-            (*                        else *)
-            (*                            r *)
-            (*                    end *)
-            (*                  | _ => r *)
-            (*         ) *)
-            (*     ) *)
-            (* val _ = find_compre p pssavar_l *)
-            val varstats = find_parallel p
-            val new_g = add_global_strings globals varstats
-        in
-            Program.T {datatypes = datatypes, functions = functions, globals = new_g, main = main}
-        end
+    let
+        val _ = print "PSSA\n"
+        val p = pssa_walker_p p
+    in
+        p
+    end
 
 end
 
