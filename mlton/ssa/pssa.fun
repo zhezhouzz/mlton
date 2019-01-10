@@ -164,7 +164,7 @@ fun block_dfs f lab r v control =
                 val i = labelIndex l
             in
                 if Array.sub (visited, i)
-                then ()
+                then r
                 else
                     let
                         val _ = Array.update (visited, i, true)
@@ -174,7 +174,7 @@ fun block_dfs f lab r v control =
                     in
                         if control b
                         then
-                            ()
+                            r'
                         else
                             let
                                 val next = block_normal_next f b
@@ -191,7 +191,7 @@ fun block_dfs f lab r v control =
         val r' = visit r lab
         val _ = Vector.foreach (blocks, rem o Block.label)
     in
-        ()
+        r'
     end
 
 
@@ -283,31 +283,59 @@ fun print_local stat =
             print ((Var.toString var) ^ "\n")
           | _ => ()
 
+fun string_local stat =
+    case stat of
+        Statement.T {var = var, ...} =>
+        case var of
+            SOME var =>
+            Var.toString var
+          | _ => ""
+
+fun add_global_strings g varstrs =
+    let
+        fun varstr2stat (new_var, str) =
+            let
+                val new_exp = Exp.Const (Const.string str)
+                val new_ty = Type.vector (Type.word WordSize.word8)
+            in
+                Statement.T {exp = new_exp,
+                             ty = new_ty,
+                             var = new_var}
+            end
+        val stats = List.map (varstrs, varstr2stat)
+        val stats_vec = Vector.fromList stats
+        val new_g = Vector.concat [g, stats_vec]
+    in
+        new_g
+    end
+
+datatype walkstate =
+         GotNone
+         | GotBegin
+         | GotEnd
+
+fun check_begin (r, prim) =
+    r orelse (
+        case (Prim.name prim) of
+            Prim.Name.Thread_parallelBegin => true
+          | _ => false
+    )
+
+fun check_end (r, prim) =
+    r orelse (
+        case (Prim.name prim) of
+            Prim.Name.Thread_parallelEnd => true
+          | _ => false
+    )
+
 fun find_parallel p =
     let
         fun visit_f f =
             let
                 val bs =
                     Function.blocks f
-                fun visit_b b =
-                    let
-                        fun check_begin (r, prim) =
-                            r orelse (
-                                case (Prim.name prim) of
-                                    Prim.Name.Thread_parallelBegin => true
-                                  | _ => false
-                            )
-                        fun check_end (r, prim) =
-                            r orelse (
-                                case (Prim.name prim) of
-                                    Prim.Name.Thread_parallelEnd => true
-                                  | _ => false
-                            )
-                        val has_begin = fold_prim_block check_begin false b
-                    in
-                        if has_begin
-                        then
-                            let
+                fun local_b b =
+                     let
                                 val labstart = Block.label b
                                 fun control b =
                                     let
@@ -322,49 +350,79 @@ fun find_parallel p =
                                         val lab_str = Label.toString lab
                                         val _ = print ("visiting Label: " ^ lab_str ^ "\nLocal variables:\n")
                                         val stats = Block.statements b
-                                        val _ = Vector.foreach (stats, print_local)
+                                        fun walker (stat, (str, walkstate)) =
+                                            let
+                                                val new_state =
+                                                case stat of
+                                                    Statement.T {exp, ty, var} =>
+                                                    case exp of
+                                                        Exp.PrimApp {args, prim, targs} =>
+                                                        (case (Prim.name prim) of
+                                                             Prim.Name.Thread_parallelBegin =>
+                                                             GotBegin
+                                                           | Prim.Name.Thread_parallelEnd =>
+                                                             GotEnd
+                                                           | _ => walkstate)
+                                                          | _ => walkstate
+                                                val new_str =
+                                                    case new_state of
+                                                        GotNone => (str ^ " " ^ (string_local stat))
+                                                      | GotBegin =>
+                                                        (case walkstate of
+                                                            GotNone => ""
+                                                          | GotBegin => (str ^ " " ^ (string_local stat))
+                                                          | GotEnd =>
+                                                            let
+                                                                val _ = print "BAD ERROR: Two parallel overlaped!\n"
+                                                            in
+                                                                ""
+                                                            end)
+                                                      | GotEnd => str
+                                            in
+                                                (new_str, new_state)
+                                            end
+                                        val (str, _) = Vector.fold (stats, ("", GotNone), walker)
+                                        val r = r ^ str
                                     in
-                                        ()
+                                        r
                                     end
-                                val _ = block_dfs f labstart () v control
+                                val loc_str = block_dfs f labstart "" v control
                             in
-                                ()
+                                loc_str
+                     end
+                fun visit_b (b, r) =
+                    let
+                        val has_begin = fold_prim_block check_begin false b
+                    in
+                        if has_begin
+                        then
+                            let
+                                val loc_str = local_b b
+                                val _ = print ("local_str = " ^ loc_str ^ "\n")
+                                val new_var = SOME (Var.newString "parallel")
+                                val r' = (new_var, loc_str) :: r
+                            in
+                                r'
                             end
                         else
-                            ()
+                            r
                     end
-                val _ =
-                    Vector.foreach (bs, visit_b)
+                val varstats =
+                    Vector.fold (bs, [],  visit_b)
             in
-                ()
+                varstats
             end
+        val multable_list = ref []
         val _ = Program.dfs (p, (fn f =>
-                                    let val _ = visit_f f
+                                    let
+                                        val varstats = visit_f f
+                                        val _ = multable_list := varstats @ (!multable_list)
                                     in
                                         fn () => ()
                                     end)
                             )
     in
-        ()
-    end
-
-fun add_global_strings g strs =
-    let
-        fun str2stat str =
-            let
-                val new_exp = Exp.Const (Const.string str)
-                val new_ty = Type.vector (Type.word WordSize.word8)
-                val new_var = SOME (Var.newString "parallel")
-            in
-                Statement.T {exp = new_exp,
-                             ty = new_ty,
-                             var = new_var}
-            end
-        val stats = List.map (strs, fn str => str2stat str)
-        val stats_vec = Vector.fromList stats
-        val new_g = Vector.concat [g, stats_vec]
-    in
-        new_g
+        !multable_list
     end
 
 val pssa =
@@ -402,8 +460,8 @@ val pssa =
             (*         ) *)
             (*     ) *)
             (* val _ = find_compre p pssavar_l *)
-            val _ = find_parallel p
-            val new_g = add_global_strings globals ["PSSATEST"]
+            val varstats = find_parallel p
+            val new_g = add_global_strings globals varstats
         in
             Program.T {datatypes = datatypes, functions = functions, globals = new_g, main = main}
         end
