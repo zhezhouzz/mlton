@@ -373,57 +373,6 @@ fun pass {display: 'a display,
       result
    end
 
-fun pass2 {display: 'a display,
-          name: string,
-          suffix: string,
-          stats: 'a -> Layout.t,
-          style: style,
-          thunk: unit -> 'a}: 'a =
-   let
-      val thunk = wrapDiagnosing {name = name, thunk = thunk}
-      val thunk = wrapProfiling {name = name, thunk = thunk}
-      val result = trace (Pass, name) thunk ()
-      val verb = Detail
-      val _ = message (verb, fn () => Layout.str (concat [name, " stats"]))
-      val _ = indent ()
-      val _ = message (verb, fn () => sizeMessage (suffix, result))
-      val _ = message (verb, fn () => stats result)
-      val _ = message (verb, PropertyList.stats)
-      val _ = message (verb, HashSet.stats)
-      val _ = unindent ()
-      val _ = checkForErrors name
-   in
-      result
-   end
-
-fun pass3 {display: 'a display,
-          name: string,
-          suffix: string,
-          stats: 'a -> Layout.t,
-          style: style,
-          thunk: unit -> 'a}: 'a =
-    let
-        val thunk = wrapDiagnosing {name = name, thunk = thunk}
-        val thunk = wrapProfiling {name = name, thunk = thunk}
-        val result = trace (Pass, name) thunk ()
-        val verb = Detail
-        val _ = message (verb, fn () => Layout.str (concat [name, " stats"]))
-        val _ = indent ()
-        val _ = message (verb, fn () => sizeMessage (suffix, result))
-        val _ = message (verb, fn () => stats result)
-        val _ = message (verb, PropertyList.stats)
-        val _ = message (verb, HashSet.stats)
-        val _ = unindent ()
-        val _ = checkForErrors name
-        val _ = print ("<<<--- pass3: name = " ^ name)
-        val _ = saveToFile ({suffix = suffix},
-                                 style, result, display)
-    in
-        result
-    end
-
-
-
 fun passTypeCheck {display: 'a display,
                    name: string,
                    stats: 'a -> Layout.t,

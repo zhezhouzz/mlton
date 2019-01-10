@@ -68,20 +68,6 @@ signature CONTROL =
                  suffix: string,
                  thunk: unit -> 'a} -> 'a
 
-      val pass2: {display: 'a display,
-                 name: string,
-                 stats: 'a -> Layout.t,
-                 style: style,
-                 suffix: string,
-                 thunk: unit -> 'a} -> 'a
-
-      val pass3: {display: 'a display,
-                  name: string,
-                  stats: 'a -> Layout.t,
-                  style: style,
-                  suffix: string,
-                  thunk: unit -> 'a} -> 'a
-
       val passTypeCheck: {display: 'a display,
                           name: string,
                           stats: 'a -> Layout.t,
