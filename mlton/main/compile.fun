@@ -582,7 +582,7 @@ fun makeSsa sxml =
     stats = Ssa.Program.layoutStats,
     style = Control.ML,
     suffix = "ssa",
-    thunk = fn () => (ClosureConvert.closureConvert sxml),
+    thunk = fn () => ClosureConvert.closureConvert sxml,
     typeCheck = Ssa.typeCheck}
 
 fun simplifySsa ssa =

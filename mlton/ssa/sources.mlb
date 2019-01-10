@@ -112,6 +112,4 @@ in
    functor Ssa
    functor Ssa2
    functor SsaToSsa2
-
-   functor Pssa
 end
