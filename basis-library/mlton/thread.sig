@@ -20,7 +20,7 @@ signature MLTON_THREAD =
 
       val parallelBegin: unit -> unit
       val parallelEnd: unit -> unit
-      val parallelly : (unit -> 'a) -> 'a
+      val comprehension : (unit -> 'a) -> 'a
 
       structure Runnable :
          sig

@@ -41,7 +41,7 @@ end
 fun atomically f =
    (atomicBegin (); DynamicWind.wind (f, atomicEnd))
 
-fun parallelly f =
+fun comprehension f =
     (parallelBegin (); DynamicWind.wind (f, parallelEnd))
 
 datatype 'a thread =
