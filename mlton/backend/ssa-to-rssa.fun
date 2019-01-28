@@ -517,8 +517,8 @@ structure Name =
             fun parallel n =
                 let
                     val s = RealSize.R64
-                    val t = real s
-                    val ct = CType.real s
+                    val t = Type.objptrHeader ()
+                    val ct = CType.objptr
                 in
                     vanilla {args = Vector.new (n, t),
                              name = name,
@@ -542,7 +542,7 @@ structure Name =
              | Real_abs s => realUnary s
              | Real_add s => realBinary s
              | Thread_parallelBegin => parallel 1
-             | Thread_parallelEnd => parallel 2
+             | Thread_parallelEnd => parallel 0
              | Real_castToWord (s1, s2) =>
                   coerce (real s1, realCType s1,
                           word s2, wordCType (s2, {signed = false}))

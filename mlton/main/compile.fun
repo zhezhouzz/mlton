@@ -665,7 +665,13 @@ fun makeMachine ssa2 =
                        else ())}
       val _ =
          let
-            open Control
+             open Control
+             val _ = print ("PSSA: makeMachine => " ^ (Bool.toString (!keepMachine)) ^ "\n")
+             val _ =
+                if !keepSSA
+                then saveToFile ({suffix = "ssa.machine"}, No, machine,
+                                 Layouts Machine.Program.layouts)
+                else ()
          in
             if !keepMachine
                then saveToFile ({suffix = "machine"}, No, machine,
