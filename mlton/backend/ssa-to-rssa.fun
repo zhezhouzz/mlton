@@ -514,6 +514,17 @@ structure Name =
                            prototype = (Vector.new2 (ct, CType.shiftArg), SOME ct),
                            return = t}
                end
+            fun parallel n =
+                let
+                    val s = RealSize.R64
+                    val t = real s
+                    val ct = CType.real s
+                in
+                    vanilla {args = Vector.new (n, t),
+                             name = name,
+                             prototype = (Vector.new (n, ct), SOME ct),
+                             return = t}
+                end
          in
             case n of
                MLton_bug => CFunction.bug ()
@@ -530,6 +541,8 @@ structure Name =
              | Real_Math_tan s => realUnary s
              | Real_abs s => realUnary s
              | Real_add s => realBinary s
+             | Thread_parallelBegin => parallel 1
+             | Thread_parallelEnd => parallel 2
              | Real_castToWord (s1, s2) =>
                   coerce (real s1, realCType s1,
                           word s2, wordCType (s2, {signed = false}))
@@ -1397,7 +1410,7 @@ fun convert (program as S.Program.T {functions, globals, main, ...},
                                     (CFunction.intInfShift IntInf_lshift)
                                | IntInf_mul =>
                                     simpleCCallWithGCState
-                                    (CFunction.intInfBinary IntInf_mul)
+                                        (CFunction.intInfBinary IntInf_mul)
                                | IntInf_neg =>
                                     simpleCCallWithGCState
                                     (CFunction.intInfUnary IntInf_neg)
