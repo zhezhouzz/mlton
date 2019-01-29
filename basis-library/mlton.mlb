@@ -40,6 +40,7 @@ in
       signature MLTON_SIGNAL
       signature MLTON_SYSLOG
       signature MLTON_TEXT_IO
+      signature MLTON_MATRIX
       signature MLTON_THREAD
       signature MLTON_VECTOR
       signature MLTON_WEAK

@@ -130,6 +130,7 @@ structure String
 structure StringCvt
 structure Substring
 structure SysWord
+structure Matrix
 structure Thread
 structure Time
 structure Timer
@@ -408,6 +409,8 @@ sum.sig
 tab.sig
 tab.sml
 test.sml
+matrix.sig
+matrix.sml
 thread.sig
 thread.sml
 two-list-queue-mutable.sml

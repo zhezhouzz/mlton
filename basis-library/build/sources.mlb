@@ -298,6 +298,8 @@ in
    ../mlton/exit.sml
    ../mlton/exn.sig
    ../mlton/exn.sml
+   ../mlton/matrix.sig
+   ../mlton/matrix.sml
    ../mlton/thread.sig
    ../mlton/thread.sml
    ../mlton/signal.sig

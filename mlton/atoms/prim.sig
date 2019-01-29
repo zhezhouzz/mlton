@@ -141,6 +141,10 @@ signature PRIM =
              | Thread_atomicState (* to rssa *)
              | Thread_parallelBegin
              | Thread_parallelEnd
+             | Matrix_create
+             | Matrix_read
+             | Matrix_write
+             | Matrix_multiply
              | Thread_copy (* to rssa (as runtime C fn) *)
              | Thread_copyCurrent (* to rssa (as runtime C fn) *)
              | Thread_returnToC (* codegen *)

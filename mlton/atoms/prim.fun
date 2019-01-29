@@ -149,7 +149,11 @@ datatype 'a t =
  | Thread_atomicState (* to rssa *)
  | Thread_parallelBegin
  | Thread_parallelEnd
- | Thread_copy (* to rssa (as runtime C fn) *)
+ | Matrix_create
+ | Matrix_read
+ | Matrix_write
+ | Matrix_multiply
+ | Thread_copy  (* to rssa (as runtime C fn) *)
  | Thread_copyCurrent (* to rssa (as runtime C fn) *)
  | Thread_returnToC (* codegen *)
  (* switchTo has to be a _prim because we have to know that it
@@ -327,6 +331,10 @@ fun toString (n: 'a t): string =
        | Thread_atomicEnd => "Thread_atomicEnd"
        | Thread_parallelBegin => "Thread_parallelBegin"
        | Thread_parallelEnd => "Thread_parallelEnd"
+       | Matrix_create => "Matrix_create"
+       | Matrix_read => "Matrix_read"
+       | Matrix_write => "Matrix_write"
+       | Matrix_multiply => "Matrix_multiply"
        | Thread_atomicState => "Thread_atomicState"
        | Thread_copy => "Thread_copy"
        | Thread_copyCurrent => "Thread_copyCurrent"
@@ -496,6 +504,10 @@ val equals: 'a t * 'a t -> bool =
     | (Thread_parallelBegin, Thread_parallelBegin) => true
     | (Thread_parallelEnd, Thread_parallelEnd) => true
     | (Thread_atomicBegin, Thread_atomicBegin) => true
+    | (Matrix_create, Matrix_create) => true
+    | (Matrix_read, Matrix_read) => true
+    | (Matrix_write, Matrix_write) => true
+    | (Matrix_multiply, Matrix_multiply) => true
     | (Thread_atomicEnd, Thread_atomicEnd) => true
     | (Thread_atomicState, Thread_atomicState) => true
     | (Thread_copy, Thread_copy) => true
@@ -668,6 +680,10 @@ val map: 'a t * ('a -> 'b) -> 'b t =
     | String_toWord8Vector => String_toWord8Vector
     | Thread_parallelBegin => Thread_parallelBegin
     | Thread_parallelEnd => Thread_parallelEnd
+    | Matrix_create => Matrix_create
+    | Matrix_read => Matrix_read
+    | Matrix_write => Matrix_write
+    | Matrix_multiply => Matrix_multiply
     | Thread_atomicBegin => Thread_atomicBegin
     | Thread_atomicEnd => Thread_atomicEnd
     | Thread_atomicState => Thread_atomicState
@@ -933,6 +949,10 @@ val kind: 'a t -> Kind.t =
        | String_toWord8Vector => Functional
        | Thread_parallelBegin => SideEffect
        | Thread_parallelEnd => SideEffect
+       | Matrix_create => Functional
+       | Matrix_read => Functional
+       | Matrix_write => SideEffect
+       | Matrix_multiply => Functional
        | Thread_atomicBegin => SideEffect
        | Thread_atomicEnd => SideEffect
        | Thread_atomicState => DependsOnState
@@ -1116,6 +1136,10 @@ in
        String_toWord8Vector,
        Thread_parallelBegin,
        Thread_parallelEnd,
+       Matrix_create,
+       Matrix_read,
+       Matrix_write,
+       Matrix_multiply,
        Thread_atomicBegin,
        Thread_atomicEnd,
        Thread_atomicState,
@@ -1447,6 +1471,10 @@ fun 'a checkApp (prim: 'a t,
        (* Hacking!!!! the type checking of parallelBegin would always be ture. *)
        | Thread_parallelBegin => true
        | Thread_parallelEnd => noTargs (fn () => (noArgs, unit))
+       | Matrix_create => true
+       | Matrix_read => true
+       | Matrix_write => true
+       | Matrix_multiply => true
        | Thread_atomicBegin => noTargs (fn () => (noArgs, unit))
        | Thread_atomicEnd => noTargs (fn () => (noArgs, unit))
        | Thread_atomicState => noTargs (fn () => (noArgs, word32))
