@@ -10,5 +10,5 @@ structure Prim = Primitive.MLton.Matrix
                   Word32.toInt (Prim.matrix_read (p, (Word32.fromInt a1), (Word32.fromInt a2)))
     val write = fn (p, a1, a2, b) =>
                    Prim.matrix_write (p, (Word32.fromInt a1), (Word32.fromInt a2), (Word32.fromInt b))
-    val multiply = Prim.matrix_multiply
+    val multiply = fn (p1, p2) => Prim.matrix_multiply (p1, p2)
 end
