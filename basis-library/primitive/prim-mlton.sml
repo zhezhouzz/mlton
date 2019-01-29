@@ -318,7 +318,7 @@ type t = Pointer.t
 val matrix_create = _prim "Matrix_create" : Word32.word * Word32.word -> Pointer.t;
 val matrix_read = _prim "Matrix_read" : Pointer.t * Word32.word * Word32.word -> Word32.word;
 val matrix_write = _prim "Matrix_write" : Pointer.t * Word32.word * Word32.word * Word32.word -> unit;
-val matrix_multiply = _prim "Matrix_create" : Pointer.t * Pointer.t -> Pointer.t;
+val matrix_multiply = _prim "Matrix_multiply" : Pointer.t * Pointer.t -> Pointer.t;
 end
 
 structure Thread =
