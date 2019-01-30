@@ -525,6 +525,34 @@ structure Name =
                              prototype = (Vector.new (n, ct), SOME ct),
                              return = t}
                 end
+            fun matrix (np, nw, r) =
+                let
+                    val tw = Type.word WordSize.word32
+                    val ctw = CType.word (WordSize.word32, {signed = true})
+                    val tp = Type.cpointer ()
+                    val ctp = CType.cpointer
+                    val args = Vector.new ((np + nw), tw)
+                    val args = Vector.mapi (args, (fn (i, _) =>
+                                                      if i < np
+                                                      then
+                                                          tp
+                                                      else
+                                                          tw))
+                    val cargs = Vector.new ((np + nw), ctw)
+                    val cargs = Vector.mapi (args, (fn (i, _) =>
+                                                     if i < np
+                                                     then
+                                                         ctp
+                                                     else
+                                                         ctw))
+                    val ret = if r = 1 then tp else if r = 2 then tw else Type.unit
+                    val cret = if r = 1 then SOME ctp else if r = 2 then SOME ctw else NONE
+                in
+                    vanilla {args = args,
+                             name = name,
+                             prototype = (cargs, cret),
+                             return = ret}
+                end
          in
             case n of
                MLton_bug => CFunction.bug ()
@@ -543,6 +571,10 @@ structure Name =
              | Real_add s => realBinary s
              | Thread_parallelBegin => parallel 1
              | Thread_parallelEnd => parallel 0
+             | Matrix_create => matrix (0, 2, 1)
+             | Matrix_read => matrix (1, 2, 2)
+             | Matrix_write => matrix (1, 3, 3)
+             | Matrix_multiply => matrix (2, 0, 1)
              | Real_castToWord (s1, s2) =>
                   coerce (real s1, realCType s1,
                           word s2, wordCType (s2, {signed = false}))
