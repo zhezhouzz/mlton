@@ -766,7 +766,7 @@ fun cpointerGet ctype =
        | Word64 => CPointer_getWord (WordSize.fromBits (Bits.fromInt 64))
    end
 val cpointerLt = CPointer_lt
-fun cpointerSet ctype = 
+fun cpointerSet ctype =
    let datatype z = datatype CType.t
    in
       case ctype of
@@ -1275,6 +1275,12 @@ fun 'a checkApp (prim: 'a t,
          andalso equals (arg0', arg 0)
          andalso equals (arg1', arg 1)
          andalso equals (arg2', arg 2)
+      fun fourArgs (arg0', arg1', arg2', arg3') () =
+          4 = Vector.length args
+          andalso equals (arg0', arg 0)
+          andalso equals (arg1', arg 1)
+          andalso equals (arg2', arg 2)
+          andalso equals (arg3', arg 3)
       fun fiveArgs (arg0', arg1', arg2', arg3', arg4') () =
          5 = Vector.length args
          andalso equals (arg0', arg 0)
@@ -1468,13 +1474,12 @@ fun 'a checkApp (prim: 'a t,
        | Ref_assign => oneTarg (fn t => (twoArgs (reff t, t), unit))
        | Ref_deref => oneTarg (fn t => (oneArg (reff t), t))
        | Ref_ref => oneTarg (fn t => (oneArg t, reff t))
-       (* Hacking!!!! the type checking of parallelBegin would always be ture. *)
-       | Thread_parallelBegin => true
+       | Thread_parallelBegin => noTargs (fn () => (oneArg string, unit))
        | Thread_parallelEnd => noTargs (fn () => (noArgs, unit))
-       | Matrix_create => true
-       | Matrix_read => true
-       | Matrix_write => true
-       | Matrix_multiply => true
+       | Matrix_create => noTargs (fn () => (twoArgs (word32, word32), cpointer))
+       | Matrix_read => noTargs (fn () => (threeArgs (cpointer, word32, word32), word32))
+       | Matrix_write => noTargs (fn () => (fourArgs (cpointer, word32, word32, word32), unit))
+       | Matrix_multiply => noTargs (fn () => (twoArgs (cpointer, cpointer), cpointer))
        | Thread_atomicBegin => noTargs (fn () => (noArgs, unit))
        | Thread_atomicEnd => noTargs (fn () => (noArgs, unit))
        | Thread_atomicState => noTargs (fn () => (noArgs, word32))
