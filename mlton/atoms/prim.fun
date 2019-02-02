@@ -149,6 +149,7 @@ datatype 'a t =
  | Thread_atomicState (* to rssa *)
  | Thread_parallelBegin
  | Thread_parallelEnd
+ | Matrix_initFromMMFile
  | Matrix_create
  | Matrix_read
  | Matrix_write
@@ -331,6 +332,7 @@ fun toString (n: 'a t): string =
        | Thread_atomicEnd => "Thread_atomicEnd"
        | Thread_parallelBegin => "Thread_parallelBegin"
        | Thread_parallelEnd => "Thread_parallelEnd"
+       | Matrix_initFromMMFile => "Matrix_initFromMMFile"
        | Matrix_create => "Matrix_create"
        | Matrix_read => "Matrix_read"
        | Matrix_write => "Matrix_write"
@@ -504,6 +506,7 @@ val equals: 'a t * 'a t -> bool =
     | (Thread_parallelBegin, Thread_parallelBegin) => true
     | (Thread_parallelEnd, Thread_parallelEnd) => true
     | (Thread_atomicBegin, Thread_atomicBegin) => true
+    | (Matrix_initFromMMFile, Matrix_initFromMMFile) => true
     | (Matrix_create, Matrix_create) => true
     | (Matrix_read, Matrix_read) => true
     | (Matrix_write, Matrix_write) => true
@@ -680,6 +683,7 @@ val map: 'a t * ('a -> 'b) -> 'b t =
     | String_toWord8Vector => String_toWord8Vector
     | Thread_parallelBegin => Thread_parallelBegin
     | Thread_parallelEnd => Thread_parallelEnd
+    | Matrix_initFromMMFile => Matrix_initFromMMFile
     | Matrix_create => Matrix_create
     | Matrix_read => Matrix_read
     | Matrix_write => Matrix_write
@@ -949,6 +953,7 @@ val kind: 'a t -> Kind.t =
        | String_toWord8Vector => Functional
        | Thread_parallelBegin => SideEffect
        | Thread_parallelEnd => SideEffect
+       | Matrix_initFromMMFile => SideEffect
        | Matrix_create => SideEffect
        | Matrix_read => SideEffect
        | Matrix_write => SideEffect
@@ -1136,6 +1141,7 @@ in
        String_toWord8Vector,
        Thread_parallelBegin,
        Thread_parallelEnd,
+       Matrix_initFromMMFile,
        Matrix_create,
        Matrix_read,
        Matrix_write,
@@ -1476,6 +1482,7 @@ fun 'a checkApp (prim: 'a t,
        | Ref_ref => oneTarg (fn t => (oneArg t, reff t))
        | Thread_parallelBegin => noTargs (fn () => (oneArg string, unit))
        | Thread_parallelEnd => noTargs (fn () => (noArgs, unit))
+       | Matrix_initFromMMFile => noTargs (fn () => (twoArgs (cpointer, string), unit))
        | Matrix_create => noTargs (fn () => (twoArgs (word32, word32), cpointer))
        | Matrix_read => noTargs (fn () => (threeArgs (cpointer, word32, word32), word32))
        | Matrix_write => noTargs (fn () => (fourArgs (cpointer, word32, word32, word32), unit))

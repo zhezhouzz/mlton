@@ -4,6 +4,8 @@ struct
 structure Prim = Primitive.MLton.Matrix
     open Prim
     type t = Prim.t
+    val initFromMMFile = fn (p, s) =>
+                            Prim.matrix_initFromMMFile (p, Primitive.NullString8.fromString (String.nullTerm s))
     val create = fn (a1, a2) =>
                     Prim.matrix_create ((Word32.fromInt a1 ), (Word32.fromInt a2))
     val read = fn (p, a1, a2) =>

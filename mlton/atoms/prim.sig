@@ -141,6 +141,7 @@ signature PRIM =
              | Thread_atomicState (* to rssa *)
              | Thread_parallelBegin
              | Thread_parallelEnd
+             | Matrix_initFromMMFile
              | Matrix_create
              | Matrix_read
              | Matrix_write

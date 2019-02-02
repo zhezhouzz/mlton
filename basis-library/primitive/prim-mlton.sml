@@ -315,6 +315,7 @@ structure Profile =
 structure Matrix =
 struct
 type t = Pointer.t
+val matrix_initFromMMFile = _prim "Matrix_initFromMMFile" : Pointer.t * NullString8.t -> unit;
 val matrix_create = _prim "Matrix_create" : Word32.word * Word32.word -> Pointer.t;
 val matrix_read = _prim "Matrix_read" : Pointer.t * Word32.word * Word32.word -> Word32.word;
 val matrix_write = _prim "Matrix_write" : Pointer.t * Word32.word * Word32.word * Word32.word -> unit;
