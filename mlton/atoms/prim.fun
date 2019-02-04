@@ -153,6 +153,7 @@ datatype 'a t =
  | Matrix_get_cols
  | Matrix_get_size
  | Matrix_initFromMMFile
+ | Matrix_initFromFile
  | Matrix_initFromHexFile
  | Matrix_create
  | Matrix_read
@@ -341,6 +342,7 @@ fun toString (n: 'a t): string =
        | Matrix_get_cols => "Matrix_get_cols"
        | Matrix_get_size => "Matrix_get_size"
        | Matrix_initFromMMFile => "Matrix_initFromMMFile"
+       | Matrix_initFromFile => "Matrix_initFromFile"
        | Matrix_initFromHexFile => "Matrix_initFromHexFile"
        | Matrix_create => "Matrix_create"
        | Matrix_read => "Matrix_read"

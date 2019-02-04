@@ -585,6 +585,7 @@ structure Name =
              | Matrix_get_cols => matrix (1, 0, 0, 2)
              | Matrix_get_size => matrix (1, 0, 0, 2)
              | Matrix_initFromMMFile => matrix (1, 0, 1, 3)
+             | Matrix_initFromFile => matrix (1, 0, 1, 3)
              | Matrix_initFromHexFile => matrix (1, 0, 1, 3)
              | Matrix_create => matrix (0, 2, 0, 1)
              | Matrix_read => matrix (1, 2, 0, 2)
