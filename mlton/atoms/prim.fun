@@ -522,6 +522,7 @@ val equals: 'a t * 'a t -> bool =
     | (Matrix_get_cols, Matrix_get_cols) => true
     | (Matrix_get_size, Matrix_get_size) => true
     | (Matrix_initFromMMFile, Matrix_initFromMMFile) => true
+    | (Matrix_initFromFile, Matrix_initFromFile) => true
     | (Matrix_initFromHexFile, Matrix_initFromHexFile) => true
     | (Matrix_create, Matrix_create) => true
     | (Matrix_read, Matrix_read) => true
@@ -704,6 +705,7 @@ val map: 'a t * ('a -> 'b) -> 'b t =
     | Matrix_get_cols => Matrix_get_cols
     | Matrix_get_size => Matrix_get_size
     | Matrix_initFromMMFile => Matrix_initFromMMFile
+    | Matrix_initFromFile => Matrix_initFromFile
     | Matrix_initFromHexFile => Matrix_initFromHexFile
     | Matrix_create => Matrix_create
     | Matrix_read => Matrix_read
@@ -979,6 +981,7 @@ val kind: 'a t -> Kind.t =
        | Matrix_get_cols => SideEffect
        | Matrix_get_size => SideEffect
        | Matrix_initFromMMFile => SideEffect
+       | Matrix_initFromFile => SideEffect
        | Matrix_initFromHexFile => SideEffect
        | Matrix_create => SideEffect
        | Matrix_read => SideEffect
@@ -1172,6 +1175,7 @@ in
        Matrix_get_cols,
        Matrix_get_size,
        Matrix_initFromMMFile,
+       Matrix_initFromFile,
        Matrix_initFromHexFile,
        Matrix_create,
        Matrix_read,
@@ -1517,8 +1521,9 @@ fun 'a checkApp (prim: 'a t,
        | Matrix_get_rows => noTargs (fn () => (oneArg cpointer, word32))
        | Matrix_get_cols => noTargs (fn () => (oneArg cpointer, word32))
        | Matrix_get_size => noTargs (fn () => (oneArg cpointer, word32))
-       | Matrix_initFromMMFile => noTargs (fn () => (twoArgs (cpointer, string), unit))
-       | Matrix_initFromHexFile => noTargs (fn () => (twoArgs (cpointer, string), unit))
+       | Matrix_initFromMMFile => noTargs (fn () => (oneArg (string), cpointer))
+       | Matrix_initFromFile => noTargs (fn () => (oneArg (string), cpointer))
+       | Matrix_initFromHexFile => noTargs (fn () => (oneArg (string), cpointer))
        | Matrix_create => noTargs (fn () => (twoArgs (word32, word32), cpointer))
        | Matrix_read => noTargs (fn () => (threeArgs (cpointer, word32, word32), word32))
        | Matrix_write => noTargs (fn () => (fourArgs (cpointer, word32, word32, word32), unit))
