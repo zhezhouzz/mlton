@@ -10,8 +10,9 @@ sig
     val get_rows: t -> int
     val get_cols: t -> int
     val get_size: t -> int
-    val initFromMMFile: t * string -> unit
-    val initFromHexFile: t * string -> unit
+    val initFromMMFile: string -> t
+    val initFromFile: string -> t
+    val initFromHexFile: string -> t
     val create: int * int -> t
     val read: t * int * int -> int
     val write: t * int * int * int -> unit

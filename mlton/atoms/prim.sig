@@ -145,6 +145,7 @@ signature PRIM =
              | Matrix_get_cols
              | Matrix_get_size
              | Matrix_initFromMMFile
+             | Matrix_initFromFile
              | Matrix_initFromHexFile
              | Matrix_create
              | Matrix_read
