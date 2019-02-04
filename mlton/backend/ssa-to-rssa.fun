@@ -544,7 +544,7 @@ structure Name =
                                                               ts
                                                           else
                                                               tw))
-                    val cargs = Vector.new ((np + nw), ctw)
+                    val cargs = Vector.new ((np + nw + ns), ctw)
                     val cargs = Vector.mapi (args, (fn (i, _) =>
                                                      if i < np
                                                      then
