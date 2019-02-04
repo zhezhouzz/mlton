@@ -149,11 +149,16 @@ datatype 'a t =
  | Thread_atomicState (* to rssa *)
  | Thread_parallelBegin
  | Thread_parallelEnd
+ | Matrix_get_rows
+ | Matrix_get_cols
+ | Matrix_get_size
  | Matrix_initFromMMFile
+ | Matrix_initFromHexFile
  | Matrix_create
  | Matrix_read
  | Matrix_write
  | Matrix_multiply
+ | Matrix_add
  | Thread_copy  (* to rssa (as runtime C fn) *)
  | Thread_copyCurrent (* to rssa (as runtime C fn) *)
  | Thread_returnToC (* codegen *)
@@ -332,11 +337,16 @@ fun toString (n: 'a t): string =
        | Thread_atomicEnd => "Thread_atomicEnd"
        | Thread_parallelBegin => "Thread_parallelBegin"
        | Thread_parallelEnd => "Thread_parallelEnd"
+       | Matrix_get_rows => "Matrix_get_rows"
+       | Matrix_get_cols => "Matrix_get_cols"
+       | Matrix_get_size => "Matrix_get_size"
        | Matrix_initFromMMFile => "Matrix_initFromMMFile"
+       | Matrix_initFromHexFile => "Matrix_initFromHexFile"
        | Matrix_create => "Matrix_create"
        | Matrix_read => "Matrix_read"
        | Matrix_write => "Matrix_write"
        | Matrix_multiply => "Matrix_multiply"
+       | Matrix_add => "Matrix_add"
        | Thread_atomicState => "Thread_atomicState"
        | Thread_copy => "Thread_copy"
        | Thread_copyCurrent => "Thread_copyCurrent"
@@ -506,11 +516,16 @@ val equals: 'a t * 'a t -> bool =
     | (Thread_parallelBegin, Thread_parallelBegin) => true
     | (Thread_parallelEnd, Thread_parallelEnd) => true
     | (Thread_atomicBegin, Thread_atomicBegin) => true
+    | (Matrix_get_rows, Matrix_get_rows) => true
+    | (Matrix_get_cols, Matrix_get_cols) => true
+    | (Matrix_get_size, Matrix_get_size) => true
     | (Matrix_initFromMMFile, Matrix_initFromMMFile) => true
+    | (Matrix_initFromHexFile, Matrix_initFromHexFile) => true
     | (Matrix_create, Matrix_create) => true
     | (Matrix_read, Matrix_read) => true
     | (Matrix_write, Matrix_write) => true
     | (Matrix_multiply, Matrix_multiply) => true
+    | (Matrix_add, Matrix_add) => true
     | (Thread_atomicEnd, Thread_atomicEnd) => true
     | (Thread_atomicState, Thread_atomicState) => true
     | (Thread_copy, Thread_copy) => true
@@ -683,11 +698,16 @@ val map: 'a t * ('a -> 'b) -> 'b t =
     | String_toWord8Vector => String_toWord8Vector
     | Thread_parallelBegin => Thread_parallelBegin
     | Thread_parallelEnd => Thread_parallelEnd
+    | Matrix_get_rows => Matrix_get_rows
+    | Matrix_get_cols => Matrix_get_cols
+    | Matrix_get_size => Matrix_get_size
     | Matrix_initFromMMFile => Matrix_initFromMMFile
+    | Matrix_initFromHexFile => Matrix_initFromHexFile
     | Matrix_create => Matrix_create
     | Matrix_read => Matrix_read
     | Matrix_write => Matrix_write
     | Matrix_multiply => Matrix_multiply
+    | Matrix_add => Matrix_add
     | Thread_atomicBegin => Thread_atomicBegin
     | Thread_atomicEnd => Thread_atomicEnd
     | Thread_atomicState => Thread_atomicState
@@ -953,11 +973,16 @@ val kind: 'a t -> Kind.t =
        | String_toWord8Vector => Functional
        | Thread_parallelBegin => SideEffect
        | Thread_parallelEnd => SideEffect
+       | Matrix_get_rows => SideEffect
+       | Matrix_get_cols => SideEffect
+       | Matrix_get_size => SideEffect
        | Matrix_initFromMMFile => SideEffect
+       | Matrix_initFromHexFile => SideEffect
        | Matrix_create => SideEffect
        | Matrix_read => SideEffect
        | Matrix_write => SideEffect
        | Matrix_multiply => SideEffect
+       | Matrix_add => SideEffect
        | Thread_atomicBegin => SideEffect
        | Thread_atomicEnd => SideEffect
        | Thread_atomicState => DependsOnState
@@ -1141,11 +1166,16 @@ in
        String_toWord8Vector,
        Thread_parallelBegin,
        Thread_parallelEnd,
+       Matrix_get_rows,
+       Matrix_get_cols,
+       Matrix_get_size,
        Matrix_initFromMMFile,
+       Matrix_initFromHexFile,
        Matrix_create,
        Matrix_read,
        Matrix_write,
        Matrix_multiply,
+       Matrix_add,
        Thread_atomicBegin,
        Thread_atomicEnd,
        Thread_atomicState,
@@ -1482,11 +1512,16 @@ fun 'a checkApp (prim: 'a t,
        | Ref_ref => oneTarg (fn t => (oneArg t, reff t))
        | Thread_parallelBegin => noTargs (fn () => (oneArg string, unit))
        | Thread_parallelEnd => noTargs (fn () => (noArgs, unit))
+       | Matrix_get_rows => noTargs (fn () => (oneArg cpointer, word32))
+       | Matrix_get_cols => noTargs (fn () => (oneArg cpointer, word32))
+       | Matrix_get_size => noTargs (fn () => (oneArg cpointer, word32))
        | Matrix_initFromMMFile => noTargs (fn () => (twoArgs (cpointer, string), unit))
+       | Matrix_initFromHexFile => noTargs (fn () => (twoArgs (cpointer, string), unit))
        | Matrix_create => noTargs (fn () => (twoArgs (word32, word32), cpointer))
        | Matrix_read => noTargs (fn () => (threeArgs (cpointer, word32, word32), word32))
        | Matrix_write => noTargs (fn () => (fourArgs (cpointer, word32, word32, word32), unit))
        | Matrix_multiply => noTargs (fn () => (twoArgs (cpointer, cpointer), cpointer))
+       | Matrix_add => noTargs (fn () => (twoArgs (cpointer, cpointer), cpointer))
        | Thread_atomicBegin => noTargs (fn () => (noArgs, unit))
        | Thread_atomicEnd => noTargs (fn () => (noArgs, unit))
        | Thread_atomicState => noTargs (fn () => (noArgs, word32))

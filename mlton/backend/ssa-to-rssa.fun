@@ -581,11 +581,16 @@ structure Name =
              | Real_add s => realBinary s
              | Thread_parallelBegin => parallel 1
              | Thread_parallelEnd => parallel 0
+             | Matrix_get_rows => matrix (1, 0, 0, 2)
+             | Matrix_get_cols => matrix (1, 0, 0, 2)
+             | Matrix_get_size => matrix (1, 0, 0, 2)
              | Matrix_initFromMMFile => matrix (1, 0, 1, 3)
+             | Matrix_initFromHexFile => matrix (1, 0, 1, 3)
              | Matrix_create => matrix (0, 2, 0, 1)
              | Matrix_read => matrix (1, 2, 0, 2)
              | Matrix_write => matrix (1, 3, 0, 3)
              | Matrix_multiply => matrix (2, 0, 0, 1)
+             | Matrix_add => matrix (2, 0, 0, 1)
              | Real_castToWord (s1, s2) =>
                   coerce (real s1, realCType s1,
                           word s2, wordCType (s2, {signed = false}))

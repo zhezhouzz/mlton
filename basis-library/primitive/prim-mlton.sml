@@ -315,11 +315,16 @@ structure Profile =
 structure Matrix =
 struct
 type t = Pointer.t
+val matrix_get_rows = _prim "Matrix_get_rows" : Pointer.t -> Word32.word;
+val matrix_get_cols = _prim "Matrix_get_cols" : Pointer.t -> Word32.word;
+val matrix_get_size = _prim "Matrix_get_size" : Pointer.t -> Word32.word;
 val matrix_initFromMMFile = _prim "Matrix_initFromMMFile" : Pointer.t * NullString8.t -> unit;
+val matrix_initFromHexFile = _prim "Matrix_initFromHexFile" : Pointer.t * NullString8.t -> unit;
 val matrix_create = _prim "Matrix_create" : Word32.word * Word32.word -> Pointer.t;
 val matrix_read = _prim "Matrix_read" : Pointer.t * Word32.word * Word32.word -> Word32.word;
 val matrix_write = _prim "Matrix_write" : Pointer.t * Word32.word * Word32.word * Word32.word -> unit;
 val matrix_multiply = _prim "Matrix_multiply" : Pointer.t * Pointer.t -> Pointer.t;
+val matrix_add = _prim "Matrix_add" : Pointer.t * Pointer.t -> Pointer.t;
 end
 
 structure Thread =
