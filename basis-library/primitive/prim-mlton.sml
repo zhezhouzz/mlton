@@ -312,6 +312,13 @@ structure Profile =
       val setCurrent = _import "GC_setProfileCurrent" runtime private : GCState.t * Data.t -> unit;
    end
 
+structure Parasite =
+struct
+  type parasite = Thread.t
+  val jumpDown = _prim "Threadlet_jumpDown" : Int32.int -> unit;
+  val prefixAndSwitchTo = _prim "Threadlet_prefixAndSwitchTo" : parasite -> unit;
+end
+
 structure Thread =
    struct
       type preThread = PreThread.t

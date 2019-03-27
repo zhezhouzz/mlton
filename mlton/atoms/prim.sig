@@ -147,6 +147,8 @@ signature PRIM =
               * on the stack.
               *)
              | Thread_switchTo (* to rssa (as runtime C fn) *)
+             | Threadlet_jumpDown (* ssa to rssa *)
+             | Threadlet_prefixAndSwitchTo (* ssa to rssa *)
              | TopLevel_getHandler (* implement exceptions *)
              | TopLevel_getSuffix (* implement suffix *)
              | TopLevel_setHandler (* implement exceptions *)

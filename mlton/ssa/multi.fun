@@ -137,6 +137,8 @@ fun multi (p as Program.T {functions, main, ...})
         = Program.hasPrim (p, fn p =>
                            case Prim.name p of
                               Prim.Name.Thread_switchTo => true
+                            | Prim.Name.Threadlet_jumpDown => true
+                            | Prim.Name.Threadlet_prefixAndSwitchTo => true
                             | _ => false)
 
       (* funcNode *)
@@ -217,6 +219,8 @@ fun multi (p as Program.T {functions, main, ...})
                             andalso
                             (case Prim.name prim of
                                 Prim.Name.Thread_copyCurrent => true
+                              | Prim.Name.Threadlet_jumpDown => true
+                              | Prim.Name.Threadlet_prefixAndSwitchTo => true
                               | _ => false)
                            then (ThreadCopyCurrent.force
                                  (LabelInfo.threadCopyCurrent li) ;

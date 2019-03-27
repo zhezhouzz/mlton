@@ -2,11 +2,11 @@
  *    Jagannathan, and Stephen Weeks.
  * Copyright (C) 1997-2000 NEC Research Institute.
  *
- * MLton is released under a HPND-style license.
+ * MLton is released under a BSD-style license.
  * See the file MLton-LICENSE for details.
  *)
 
-functor Globalize (S: GLOBALIZE_STRUCTS): GLOBALIZE = 
+functor Globalize (S: GLOBALIZE_STRUCTS): GLOBALIZE =
 struct
 
 open S
@@ -20,6 +20,8 @@ fun globalize {program = Program.T {datatypes, body, ...},
          not (Exp.hasPrim (body, fn p =>
                            case Prim.name p of
                               Prim.Name.Thread_switchTo => true
+                            | Prim.Name.Threadlet_jumpDown => true
+                            | Prim.Name.Threadlet_prefixAndSwitchTo => true
                             | _ => false))
       local
          val {get: Tycon.t -> bool, set, destroy} =
@@ -105,9 +107,9 @@ fun globalize {program = Program.T {datatypes, body, ...},
                                    areGlobal args andalso
                                    ((Prim.isFunctional prim
                                      (* Don't want to move MLton_equal or MLton_hash
-                                      * into the globals because polymorphic 
+                                      * into the globals because polymorphic
                                       * equality and hasing isn't implemented
-                                      * there. 
+                                      * there.
                                       *)
                                      andalso
                                      (case Prim.name prim of
@@ -123,6 +125,8 @@ fun globalize {program = Program.T {datatypes, body, ...},
                                     once andalso
                                     (case Prim.name prim of
                                         Prim.Name.Thread_copyCurrent => false
+                                      | Prim.Name.Threadlet_jumpDown => false
+                                      | Prim.Name.Threadlet_prefixAndSwitchTo => false
                                       | _ => true)
                              in
                                 (global, once)
@@ -140,7 +144,7 @@ fun globalize {program = Program.T {datatypes, body, ...},
                      then ()
                   else
                      let
-                        val {lambda, ...} = Vector.first decs
+                        val {lambda, ...} = Vector.sub (decs, 0)
                      in
                         if Vector.forall (lambdaFree lambda, varIsGlobal)
                            then Vector.foreach (decs, makeGlobal o #var)

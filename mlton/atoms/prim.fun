@@ -155,6 +155,8 @@ datatype 'a t =
   * on the stack.
   *)
  | Thread_switchTo (* to rssa (as runtime C fn) *)
+ | Threadlet_jumpDown (* ssa to rssa *)
+ | Threadlet_prefixAndSwitchTo (* ssa to rssa *)
  | TopLevel_getHandler (* implement exceptions *)
  | TopLevel_getSuffix (* implement suffix *)
  | TopLevel_setHandler (* implement exceptions *)
@@ -328,6 +330,8 @@ fun toString (n: 'a t): string =
        | Thread_copyCurrent => "Thread_copyCurrent"
        | Thread_returnToC => "Thread_returnToC"
        | Thread_switchTo => "Thread_switchTo"
+       | Threadlet_jumpDown => "Threadlet_jumpDown"
+       | Threadlet_prefixAndSwitchTo => "Threadlet_prefixAndSwitchTo"
        | TopLevel_getHandler => "TopLevel_getHandler"
        | TopLevel_getSuffix => "TopLevel_getSuffix"
        | TopLevel_setHandler => "TopLevel_setHandler"
@@ -496,6 +500,8 @@ val equals: 'a t * 'a t -> bool =
     | (Thread_copyCurrent, Thread_copyCurrent) => true
     | (Thread_returnToC, Thread_returnToC) => true
     | (Thread_switchTo, Thread_switchTo) => true
+    | (Threadlet_jumpDown, Threadlet_jumpDown) => true
+    | (Threadlet_prefixAndSwitchTo, Threadlet_prefixAndSwitchTo) => true
     | (TopLevel_getHandler, TopLevel_getHandler) => true
     | (TopLevel_getSuffix, TopLevel_getSuffix) => true
     | (TopLevel_setHandler, TopLevel_setHandler) => true
@@ -667,6 +673,8 @@ val map: 'a t * ('a -> 'b) -> 'b t =
     | Thread_copyCurrent => Thread_copyCurrent
     | Thread_returnToC => Thread_returnToC
     | Thread_switchTo => Thread_switchTo
+    | Threadlet_jumpDown => Threadlet_jumpDown
+    | Threadlet_prefixAndSwitchTo => Threadlet_prefixAndSwitchTo
     | TopLevel_getHandler => TopLevel_getHandler
     | TopLevel_getSuffix => TopLevel_getSuffix
     | TopLevel_setHandler => TopLevel_setHandler
@@ -930,6 +938,8 @@ val kind: 'a t -> Kind.t =
        | Thread_copyCurrent => SideEffect
        | Thread_returnToC => SideEffect
        | Thread_switchTo => SideEffect
+       | Threadlet_jumpDown => SideEffect
+       | Threadlet_prefixAndSwitchTo => SideEffect
        | TopLevel_getHandler => DependsOnState
        | TopLevel_getSuffix => DependsOnState
        | TopLevel_setHandler => SideEffect
@@ -1111,6 +1121,8 @@ in
        Thread_copyCurrent,
        Thread_returnToC,
        Thread_switchTo,
+       Threadlet_jumpDown,
+       Threadlet_prefixAndSwitchTo,
        TopLevel_getHandler,
        TopLevel_getSuffix,
        TopLevel_setHandler,
@@ -1439,6 +1451,8 @@ fun 'a checkApp (prim: 'a t,
        | Thread_copyCurrent => noTargs (fn () => (noArgs, unit))
        | Thread_returnToC => noTargs (fn () => (noArgs, unit))
        | Thread_switchTo => noTargs (fn () => (oneArg thread, unit))
+       | Threadlet_jumpDown => noTargs (fn () => (oneArg cint, unit))
+       | Threadlet_prefixAndSwitchTo => noTargs (fn () => (oneArg thread, unit))
        | TopLevel_getHandler => noTargs (fn () => (noArgs, arrow (exn, unit)))
        | TopLevel_getSuffix => noTargs (fn () => (noArgs, arrow (unit, unit)))
        | TopLevel_setHandler =>

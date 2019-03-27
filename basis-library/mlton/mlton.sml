@@ -69,6 +69,7 @@ structure LargeWord =
       open LargeWord
       type t = word
    end
+structure Pacml = MLtonPacml
 structure Platform = MLtonPlatform
 structure Pointer = MLtonPointer
 structure ProcEnv = MLtonProcEnv

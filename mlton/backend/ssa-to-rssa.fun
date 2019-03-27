@@ -188,6 +188,40 @@ structure CFunction =
             symbolScope = Private,
             target = Direct "GC_switchToThread"}
 
+      val jumpDown = fn () =>
+         T {args = Vector.new2 (Type.gcState (), Type.cint ()),
+            convention = Cdecl,
+            kind = Kind.Runtime {bytesNeeded = NONE,
+                                 ensuresBytesFree = true,
+                                 mayGC = true,
+                                 maySwitchThreads = true,
+                                 modifiesFrontier = true,
+                                 readsStackTop = true,
+                                 writesStackTop = true},
+            prototype = (Vector.new2 (CType.gcState,
+                                      CType.cint ()),
+                         NONE),
+            return = Type.unit,
+            symbolScope = Private,
+            target = Direct "GC_jumpDown"}
+
+      val prefixAndSwitchTo = fn () =>
+         T {args = Vector.new2 (Type.gcState (), Type.thread ()),
+            convention = Cdecl,
+            kind = Kind.Runtime {bytesNeeded = NONE,
+                                 ensuresBytesFree = true,
+                                 mayGC = true,
+                                 maySwitchThreads = true,
+                                 modifiesFrontier = true,
+                                 readsStackTop = true,
+                                 writesStackTop = true},
+            prototype = (Vector.new2 (CType.gcState,
+                                      CType.thread),
+                         NONE),
+            return = Type.unit,
+            symbolScope = Private,
+            target = Direct "GC_prefixAndSwitchTo"}
+
       (* CHECK; weak as objptr *)
       fun weakCanGet {arg} =
          T {args = Vector.new2 (Type.gcState (), arg),
@@ -1583,6 +1617,12 @@ fun convert (program as S.Program.T {functions, globals, main, ...},
                                                     a 0,
                                                     EnsuresBytesFree)),
                                            func = CFunction.threadSwitchTo ()}
+                               | Threadlet_jumpDown =>
+                                    simpleCCallWithGCState
+                                    (CFunction.jumpDown ())
+                               | Threadlet_prefixAndSwitchTo =>
+                                    simpleCCallWithGCState
+                                    (CFunction.prefixAndSwitchTo ())
                                | Vector_length => arrayOrVectorLength ()
                                | Weak_canGet =>
                                     ifIsWeakPointer

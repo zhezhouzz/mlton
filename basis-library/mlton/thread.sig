@@ -61,6 +61,9 @@ signature MLTON_THREAD_EXTRA =
    sig
       include MLTON_THREAD
 
+      val amSwitching: int -> bool
+      val toPrimitive : (Runnable.t) -> Primitive.MLton.Thread.thread
+      val fromPrimitive : Primitive.MLton.Thread.thread -> Runnable.t
       val amInSignalHandler: unit -> bool
       val register: int * (MLtonPointer.t -> unit) -> unit
       val setSignalHandler: (Runnable.t -> Runnable.t) -> unit
