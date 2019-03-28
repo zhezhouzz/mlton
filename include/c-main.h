@@ -20,6 +20,7 @@ static GC_frameIndex returnAddressToFrameIndex (GC_returnAddress ra) {
 /* Globals */                                                           \
 PRIVATE uintptr_t nextFun;                                              \
 PRIVATE int returnToC;                                                  \
+pthread_key_t gcstate_key;                                              \
 static void MLton_callFromC () {                                        \
         struct cont cont;                                               \
         GC_state s;                                                     \

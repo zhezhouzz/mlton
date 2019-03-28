@@ -46,9 +46,12 @@ struct GC_state {
   uint32_t magic; /* The magic number for this executable. */
   uint32_t maxFrameSize;
   bool mutatorMarksCards;
+  int32_t numberOfProcs;
+  int32_t numIOThreads;
   GC_objectHashTable objectHashTable;
   GC_objectType objectTypes; /* Array of object types. */
   uint32_t objectTypesLength; /* Cardinality of objectTypes array. */
+  GC_state procStates;
   struct GC_profiling profiling;
   GC_frameIndex (*returnAddressToFrameIndex) (GC_returnAddress ra);
   objptr savedThread; /* Result of GC_copyCurrentThread.
@@ -61,6 +64,7 @@ struct GC_state {
   struct GC_signalsInfo signalsInfo;
   struct GC_sourceMaps sourceMaps;
   pointer stackBottom; /* Bottom of stack in current thread. */
+  int32_t copiedSize;
   struct GC_sysvals sysvals;
   struct GC_translateState translateState;
   struct GC_vectorInit *vectorInits;

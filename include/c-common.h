@@ -15,6 +15,8 @@
 
 #include "export.h"
 
+extern pthread_key_t gcstate_key;
+
 struct cont {
         void *nextChunk;
 };

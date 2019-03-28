@@ -32,11 +32,14 @@ PRIVATE Word64 stackTopTemp;
 #define DEBUG_AMD64CODEGEN FALSE
 #endif
 
+extern pthread_key_t gcstate_key;
+
 static GC_frameIndex returnAddressToFrameIndex (GC_returnAddress ra) {
         return *((GC_frameIndex*)(ra - sizeof(GC_frameIndex)));
 }
 
 #define MLtonCallFromC                                                  \
+pthread_key_t gcstate_key;                                              \
 PRIVATE void MLton_jumpToSML (pointer jump);                            \
 static void MLton_callFromC () {                                        \
         pointer jump;                                                   \

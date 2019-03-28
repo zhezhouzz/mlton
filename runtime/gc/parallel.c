@@ -25,8 +25,8 @@ void Parallel_init (void) {
     for (int proc = 0; proc < s->numberOfProcs; proc++) {
       s->procStates[proc].callFromCHandlerThread = pointerToObjptr(
         GC_copyThread (s, objptrToPointer(s->callFromCHandlerThread,
-                                          s->heap->start)),
-        s->heap->start);
+                                          s->heap.start)),
+        s->heap.start);
 
       Parallel_mutexes[proc] = -1;
       pthread_mutex_init (&waitMutex[proc], NULL);
@@ -57,12 +57,12 @@ Int32 Parallel_numIOThreads (void) {
 
 Word64 Parallel_maxBytesLive (void) {
   GC_state s = pthread_getspecific (gcstate_key);
-  return (uint64_t)s->cumulativeStatistics->maxBytesLiveSinceReset;
+  return (uint64_t)s->cumulativeStatistics.maxBytesLiveSinceReset;
 }
 
 void Parallel_resetBytesLive (void) {
   GC_state s = pthread_getspecific (gcstate_key);
-  s->cumulativeStatistics->maxBytesLiveSinceReset = 0;
+  s->cumulativeStatistics.maxBytesLiveSinceReset = 0;
 }
 
 

@@ -2,7 +2,7 @@
  *    Jagannathan, and Stephen Weeks.
  * Copyright (C) 1997-2000 NEC Research Institute.
  *
- * MLton is released under a HPND-style license.
+ * MLton is released under a BSD-style license.
  * See the file MLton-LICENSE for details.
  */
 
@@ -10,7 +10,9 @@
 #define DEBUG FALSE
 #endif
 
+
 enum {
+  DEBUG_ARRAY = FALSE,
   DEBUG_CALL_STACK = FALSE,
   DEBUG_CARD_MARKING = FALSE,
   DEBUG_DETAILED = FALSE,
@@ -29,6 +31,7 @@ enum {
   DEBUG_SIGNALS = FALSE,
   DEBUG_SIZE = FALSE,
   DEBUG_SOURCES = FALSE,
+  DEBUG_SPLICE = FALSE,
   DEBUG_STACKS = FALSE,
   DEBUG_THREADS = FALSE,
   DEBUG_WEAK = FALSE,

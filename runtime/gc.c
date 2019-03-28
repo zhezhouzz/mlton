@@ -24,6 +24,8 @@
 #include "gc/align.c"
 #include "gc/read_write.c"
 
+extern pthread_key_t gcstate_key;
+
 #include "gc/atomic.c"
 #include "gc/call-stack.c"
 #include "gc/cheney-copy.c"

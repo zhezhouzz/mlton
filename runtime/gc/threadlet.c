@@ -74,7 +74,7 @@ GC_thread GC_copyParasite (int startOffset) {
     assert (end-start > 0);
 
     GC_thread th = newThread (s, end-start);
-    GC_stack stk = (GC_stack) objptrToPointer (th->stack, s->heap->start);
+    GC_stack stk = (GC_stack) objptrToPointer (th->stack, s->heap.start);
 
     if (DEBUG_SPLICE) {
         fprintf (stderr, "\ncopyParasite [%d]\n", Proc_processorNumber (s));
@@ -138,7 +138,7 @@ bool GC_proceedToExtract (pointer p, int startOffset) {
 
     /* Find out the size needed for newThread */
     long int size = -1;
-    GC_stack oriStk = (GC_stack) objptrToPointer (oriThrd->stack, s->heap->start);
+    GC_stack oriStk = (GC_stack) objptrToPointer (oriThrd->stack, s->heap.start);
     size = oriStk->used - startOffset;
     if (size <= 0) return false;
     return true;
@@ -150,7 +150,7 @@ GC_thread GC_extractParasite (pointer p, int startOffset) {
 
     /* Find out the size needed for newThread */
     long int size = -1;
-    GC_stack oriStk = (GC_stack) objptrToPointer (oriThrd->stack, s->heap->start);
+    GC_stack oriStk = (GC_stack) objptrToPointer (oriThrd->stack, s->heap.start);
     size = oriStk->used - startOffset;
     assert (size >=0);
 
@@ -161,18 +161,18 @@ GC_thread GC_extractParasite (pointer p, int startOffset) {
     getStackCurrent(s)->used = sizeofGCStateCurrentStackUsed (s);
     getThreadCurrent(s)->exnStack = s->exnStack;
     assert (s->savedThread == BOGUS_OBJPTR);
-    s->savedThread = pointerToObjptr((pointer)oriThrd - offsetofThread (s), s->heap->start);
+    s->savedThread = pointerToObjptr((pointer)oriThrd - offsetofThread (s), s->heap.start);
 
     GC_thread th = newThread (s, size);
     assert (th);
     /* restore */
-    oriThrd = (GC_thread)(objptrToPointer(s->savedThread, s->heap->start) + offsetofThread (s));
+    oriThrd = (GC_thread)(objptrToPointer(s->savedThread, s->heap.start) + offsetofThread (s));
     s->savedThread = BOGUS_OBJPTR;
 
-    GC_stack stk = (GC_stack) objptrToPointer (th->stack, s->heap->start);
+    GC_stack stk = (GC_stack) objptrToPointer (th->stack, s->heap.start);
 
     /* Find the limits of async */
-    oriStk = (GC_stack) objptrToPointer (oriThrd->stack, s->heap->start);
+    oriStk = (GC_stack) objptrToPointer (oriThrd->stack, s->heap.start);
     pointer start = getStackBottom (s, oriStk) + startOffset;
     pointer end = getStackBottom (s, oriStk) + oriStk->used;
     assert (start <= end);
@@ -211,7 +211,7 @@ void GC_prefixAndSwitchTo (GC_state s, pointer p) {
     if (DEBUG_SPLICE)
         fprintf (stderr, "\nprefixAndSwitchTo [%d]\n", Proc_processorNumber (s));
 
-    GC_stack stk = (GC_stack) objptrToPointer (thrd->stack, s->heap->start);
+    GC_stack stk = (GC_stack) objptrToPointer (thrd->stack, s->heap.start);
 
     int i=0;
     while (s->stackLimit <= s->stackTop + stk->used) {
@@ -234,16 +234,16 @@ void GC_prefixAndSwitchTo (GC_state s, pointer p) {
         getThreadCurrent(s)->bytesNeeded = 0;
 
         assert (s->savedThread == BOGUS_OBJPTR);
-        s->savedThread = pointerToObjptr((pointer)thrd - offsetofThread (s), s->heap->start);
+        s->savedThread = pointerToObjptr((pointer)thrd - offsetofThread (s), s->heap.start);
         ensureHasHeapBytesFreeAndOrInvariantForMutator (s, FALSE,
                                                         TRUE, TRUE,
                                                         0, 0, FALSE, TRUE);
 
-        thrd = (GC_thread)(objptrToPointer(s->savedThread, s->heap->start) + offsetofThread (s));
+        thrd = (GC_thread)(objptrToPointer(s->savedThread, s->heap.start) + offsetofThread (s));
         s->savedThread = BOGUS_OBJPTR;
 
         /* Assertions */
-        stk = (GC_stack) objptrToPointer (thrd->stack, s->heap->start);
+        stk = (GC_stack) objptrToPointer (thrd->stack, s->heap.start);
         i++;
     }
 

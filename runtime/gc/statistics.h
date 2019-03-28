@@ -33,6 +33,8 @@ struct GC_cumulativeStatistics {
   struct rusage ru_gcCopying; /* resource usage in major copying gcs. */
   struct rusage ru_gcMarkCompact; /* resource usage in major mark-compact gcs. */
   struct rusage ru_gcMinor; /* resource usage in minor copying gcs. */
+
+  size_t maxBytesLiveSinceReset;
 };
 
 struct GC_lastMajorStatistics {
