@@ -250,6 +250,21 @@ int processAtMLton (GC_state s, int start, int argc, char **argv,
           if (i == argc || 0 == strcmp (argv[i], "--"))
             die ("@MLton use-mmap missing argument.");
           GC_setCygwinUseMmap (stringToBool (argv[i++]));
+        } else if (0 == strcmp (arg, "number-processors")) {
+          i++;
+          if (i == argc)
+            die ("@MLton number-processors missing argument.");
+          if (!s->amOriginal)
+            die ("@MLton number-processors incompatible with loaded worlds.");
+          s->numberOfProcs = stringToFloat (argv[i++]) + s->numIOThreads;
+          /* Turn off loaded worlds -- they are unsuppoed in multi-proc mode */
+          s->controls.mayLoadWorld = FALSE;
+        } else if (0 == strcmp (arg, "io-threads")) {
+          i++;
+          if (i == argc)
+            die ("@MLton io-threads missing argument.");
+          s->numIOThreads = stringToFloat (argv[i++]);
+          s->numberOfProcs += s->numIOThreads;
         } else if (0 == strcmp (arg, "--")) {
           i++;
           done = TRUE;
@@ -316,6 +331,10 @@ int GC_init (GC_state s, int argc, char **argv) {
   s->cumulativeStatistics.numHashConsGCs = 0;
   s->cumulativeStatistics.numMarkCompactGCs = 0;
   s->cumulativeStatistics.numMinorGCs = 0;
+  s->numberOfProcs = 1;
+  s->numIOThreads = 0;
+  s->copiedSize = -1;
+  s->procStates = NULL;
   rusageZero (&s->cumulativeStatistics.ru_gc);
   rusageZero (&s->cumulativeStatistics.ru_gcCopying);
   rusageZero (&s->cumulativeStatistics.ru_gcMarkCompact);
@@ -336,6 +355,7 @@ int GC_init (GC_state s, int argc, char **argv) {
   s->signalsInfo.signalIsPending = FALSE;
   sigemptyset (&s->signalsInfo.signalsHandled);
   sigemptyset (&s->signalsInfo.signalsPending);
+  s->syncReason = SYNC_NONE;
   s->sysvals.pageSize = GC_pageSize ();
   s->sysvals.physMem = GC_physMem ();
   s->weaks = NULL;
