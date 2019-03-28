@@ -19,4 +19,7 @@ static inline uintmax_t rusageTime (struct rusage *ru);
 static inline void startTiming (struct rusage *ru_start);
 static uintmax_t stopTiming (struct rusage *ru_start, struct rusage *ru_gc);
 
+static inline void startWallTiming (struct timeval *tv_start);
+static uintmax_t stopWallTiming (struct timeval *tv_start, struct timeval *tv_acc);
+
 #endif /* (defined (MLTON_GC_INTERNAL_FUNCS)) */

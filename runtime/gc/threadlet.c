@@ -235,9 +235,11 @@ void GC_prefixAndSwitchTo (GC_state s, pointer p) {
 
         assert (s->savedThread == BOGUS_OBJPTR);
         s->savedThread = pointerToObjptr((pointer)thrd - offsetofThread (s), s->heap.start);
-        ensureHasHeapBytesFreeAndOrInvariantForMutator (s, FALSE,
-                                                        TRUE, TRUE,
-                                                        0, 0, FALSE, TRUE);
+        ensureHasHeapBytesFree(s, 0, 0);
+        ensureInvariantForMutator(s, FLASE)
+        // ensureHasHeapBytesFreeAndOrInvariantForMutator (s, FALSE,
+        //                                                TRUE, TRUE,
+        //                                                0, 0, FALSE, TRUE);
 
         thrd = (GC_thread)(objptrToPointer(s->savedThread, s->heap.start) + offsetofThread (s));
         s->savedThread = BOGUS_OBJPTR;

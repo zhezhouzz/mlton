@@ -24,6 +24,7 @@ static inline void ensureHasHeapBytesFree (GC_state s,
                                            size_t oldGenBytesRequested,
                                            size_t nurseryBytesRequested);
 
+
 #endif /* (defined (MLTON_GC_INTERNAL_FUNCS)) */
 
 #if (defined (MLTON_GC_INTERNAL_BASIS))

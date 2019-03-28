@@ -218,6 +218,7 @@ void ensureHasHeapBytesFree (GC_state s,
   assert (hasHeapBytesFree (s, oldGenBytesRequested, nurseryBytesRequested));
 }
 
+
 void GC_collect (GC_state s, size_t bytesRequested, bool force) {
   enter (s);
   /* When the mutator requests zero bytes, it may actually need as

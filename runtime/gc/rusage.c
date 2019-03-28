@@ -79,3 +79,17 @@ uintmax_t stopTiming (struct rusage *ru_start, struct rusage *ru_acc) {
   rusagePlusMax (ru_acc, &ru_total, ru_acc);
   return rusageTime (&ru_total);
 }
+
+
+void startWallTiming (struct timeval *tv_start) {
+  gettimeofday (tv_start, (struct timezone *) NULL);
+}
+
+uintmax_t stopWallTiming (struct timeval *tv_start, struct timeval *tv_acc) {
+  struct timeval tv_finish, tv_total;
+
+  gettimeofday (&tv_finish, (struct timezone *) NULL);
+  timevalMinusMax (&tv_finish, tv_start, &tv_total);
+  timevalPlusMax (tv_acc, &tv_total, tv_acc);
+  return timevalTime (&tv_total);
+}

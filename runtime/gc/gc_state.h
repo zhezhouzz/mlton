@@ -65,6 +65,7 @@ struct GC_state {
   struct GC_sourceMaps sourceMaps;
   pointer stackBottom; /* Bottom of stack in current thread. */
   int32_t copiedSize;
+  int32_t syncReason;
   struct GC_sysvals sysvals;
   struct GC_translateState translateState;
   struct GC_vectorInit *vectorInits;

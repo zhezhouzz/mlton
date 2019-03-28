@@ -72,25 +72,25 @@ void Proc_beginCriticalSection (GC_state s) {
       case SYNC_SIGNALS:
         break;
       case SYNC_OLD_GEN_ARRAY:
-        s->cumulativeStatistics->syncForOldGenArray++;
+        s->cumulativeStatistics.syncForOldGenArray++;
         break;
       case SYNC_NEW_GEN_ARRAY:
-        s->cumulativeStatistics->syncForNewGenArray++;
+        s->cumulativeStatistics.syncForNewGenArray++;
         break;
       case SYNC_STACK:
-        s->cumulativeStatistics->syncForStack++;
+        s->cumulativeStatistics.syncForStack++;
         break;
       case SYNC_HEAP:
-        s->cumulativeStatistics->syncForHeap++;
+        s->cumulativeStatistics.syncForHeap++;
         break;
       case SYNC_FORCE:
-        s->cumulativeStatistics->syncMisc++;
+        s->cumulativeStatistics.syncMisc++;
         break;
       case SYNC_PACK:
-        s->cumulativeStatistics->syncMisc++;
+        s->cumulativeStatistics.syncMisc++;
         break;
       case SYNC_SAVE_WORLD:
-        s->cumulativeStatistics->syncMisc++;
+        s->cumulativeStatistics.syncMisc++;
         break;
       default:
         fprintf (stderr, "Unknown sync reason?\n");
@@ -105,7 +105,7 @@ void Proc_beginCriticalSection (GC_state s) {
     if (p == s->numberOfProcs) {
       /* We are the last to syncronize */
       if (needGCTime (s)) {
-        stopWallTiming (&tv_sync, &s->cumulativeStatistics->tv_sync);
+        stopWallTiming (&tv_sync, &s->cumulativeStatistics.tv_sync);
         startWallTiming (&tv_rt);
       }
       Proc_criticalTicket = 0;
@@ -126,7 +126,7 @@ void Proc_endCriticalSection (__attribute__ ((unused)) GC_state s) {
       /* We are the last to finish */
 
       if (needGCTime (s))
-        stopWallTiming (&tv_rt, &s->cumulativeStatistics->tv_rt);
+        stopWallTiming (&tv_rt, &s->cumulativeStatistics.tv_rt);
 
       Proc_criticalCount = 0;
       Proc_criticalTicket = -1;

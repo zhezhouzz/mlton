@@ -76,5 +76,6 @@ typedef GC_state GCState_t;
 #include "gc/size.h"
 #include "gc/share.h"
 #include "gc/parallel.h"
+#include "gc/processor.h"
 
 #endif /* _MLTON_GC_H_ */
