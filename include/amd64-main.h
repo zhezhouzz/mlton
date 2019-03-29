@@ -49,6 +49,7 @@ static GC_frameIndex returnAddressToFrameIndex (GC_returnAddress ra) {
 pthread_key_t gcstate_key;                                            \
 PRIVATE void MLton_jumpToSML (pointer jump);                            \
 static void MLton_callFromC (pointer ffiOpArgsResPtr) {                 \
+                fprintf (stderr, "MLton_callFromC() starting\n");       \
         pointer jump;                                                   \
         GC_state s = pthread_getspecific (gcstate_key);                 \
                                                                         \

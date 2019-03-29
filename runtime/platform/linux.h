@@ -54,6 +54,8 @@
 extern char **environ; /* for Posix_ProcEnv_environ */
 #endif
 
+#define set_cpu_affinity(num) do {} while (0)
+
 /* The following is compatibility code with older glibc and kernel
    versions. */
 

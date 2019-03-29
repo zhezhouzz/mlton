@@ -71,6 +71,7 @@ struct GC_state {
   struct GC_vectorInit *vectorInits;
   uint32_t vectorInitsLength;
   GC_weak weaks; /* Linked list of (live) weak pointers */
+  char *worldFile;
 };
 
 #endif /* (defined (MLTON_GC_INTERNAL_TYPES)) */

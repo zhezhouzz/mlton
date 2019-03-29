@@ -33,6 +33,16 @@ static float stringToFloat (char *s) {
   return f;
 }
 
+static int32_t stringToInt (char *s) {
+  char *endptr;
+  int i;
+
+  i = strtol (s, &endptr, 10);
+  if (s == endptr)
+    die ("Invalid @MLton int: %s.", s);
+  return i;
+}
+
 static size_t stringToBytes (char *s) {
   double d;
   char *endptr;
@@ -287,8 +297,32 @@ int processAtMLton (GC_state s, int start, int argc, char **argv,
   return i;
 }
 
+void GC_lateInit (GC_state s) {
+  /* Initialize profiling.  This must occur after processing
+   * command-line arguments, because those may just be doing a
+   * show-sources, in which case we don't want to initialize the
+   * atExit.
+   */
+
+  initProfiling (s);
+
+  if (s->amOriginal) {
+    initWorld (s);
+    /* The mutator stack invariant doesn't hold,
+     * because the mutator has yet to run.
+     */
+    // spoons: can't assert because other threads are init'd
+    //assert (invariantForMutator (s, TRUE, FALSE));
+  } else {
+    loadWorldFromFileName (s, s->worldFile);
+    if (s->profiling.isOn and s->profiling.stack)
+      foreachStackFrame (s, enterFrameForProfiling);
+    assert (invariantForMutator (s, TRUE, TRUE));
+  }
+  s->amInGC = FALSE;
+}
+
 int GC_init (GC_state s, int argc, char **argv) {
-  char *worldFile;
   int res;
 
   assert (s->alignment >= GC_MODEL_MINALIGN);
@@ -375,12 +409,12 @@ int GC_init (GC_state s, int argc, char **argv) {
 
   initIntInf (s);
   initSignalStack (s);
-  worldFile = NULL;
+  s->worldFile = NULL;
 
   unless (isAligned (s->sysvals.pageSize, CARD_SIZE))
     die ("Page size must be a multiple of card size.");
-  processAtMLton (s, 0, s->atMLtonsLength, s->atMLtons, &worldFile);
-  res = processAtMLton (s, 1, argc, argv, &worldFile);
+  processAtMLton (s, 0, s->atMLtonsLength, s->atMLtons, &s->worldFile);
+  res = processAtMLton (s, 1, argc, argv, &s->worldFile);
   if (s->controls.fixedHeap > 0 and s->controls.maxHeap > 0)
     die ("Cannot use both fixed-heap and max-heap.");
   unless (s->controls.ratios.markCompact <= s->controls.ratios.copy
@@ -431,11 +465,52 @@ int GC_init (GC_state s, int argc, char **argv) {
      */
     assert (invariantForMutator (s, TRUE, FALSE));
   } else {
-    loadWorldFromFileName (s, worldFile);
+    loadWorldFromFileName (s, s->worldFile);
     if (s->profiling.isOn and s->profiling.stack)
       foreachStackFrame (s, enterFrameForProfiling);
     assert (invariantForMutator (s, TRUE, TRUE));
   }
   s->amInGC = FALSE;
   return res;
+}
+
+void GC_duplicate (GC_state d, GC_state s) {
+  // GC_init
+  d->amInGC = s->amInGC;
+  d->amOriginal = s->amOriginal;
+  d->atomicState = 0;
+  d->callFromCHandlerThread = BOGUS_OBJPTR;
+  d->controls = s->controls;
+  d->cumulativeStatistics = s->cumulativeStatistics;
+  d->currentThread = BOGUS_OBJPTR;
+  d->hashConsDuringGC = s->hashConsDuringGC;
+  d->lastMajorStatistics = s->lastMajorStatistics;
+  d->numberOfProcs = s->numberOfProcs;
+  d->numIOThreads = s->numIOThreads;
+  d->savedThread = BOGUS_OBJPTR;
+  d->signalHandlerThread = BOGUS_OBJPTR;
+  d->signalsInfo.amInSignalHandler = FALSE;
+  d->signalsInfo.gcSignalHandled = FALSE;
+  d->signalsInfo.gcSignalPending = FALSE;
+  d->signalsInfo.signalIsPending = FALSE;
+  sigemptyset (&d->signalsInfo.signalsHandled);
+  sigemptyset (&d->signalsInfo.signalsPending);
+  d->syncReason = SYNC_NONE;
+  d->sysvals.physMem = s->sysvals.physMem;
+  d->sysvals.pageSize = s->sysvals.pageSize;
+  d->weaks = s->weaks;
+  d->copiedSize = s->copiedSize;
+  d->saveWorldStatus = s->saveWorldStatus;
+
+  // XXX spoons better duplicate?
+  //initSignalStack (d);
+
+  d->sysvals.ram = s->sysvals.ram;
+
+  //initProfiling (d);
+
+  // Multi-processor support is incompatible with saved-worlds
+  assert (d->amOriginal);
+  duplicateWorld (d, s);
+  s->amInGC = FALSE;
 }

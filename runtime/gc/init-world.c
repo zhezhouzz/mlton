@@ -106,3 +106,22 @@ void initWorld (GC_state s) {
   thread = newThread (s, sizeofStackInitialReserved (s));
   switchToThread (s, pointerToObjptr((pointer)thread - offsetofThread (s), s->heap.start));
 }
+
+void duplicateWorld (GC_state d, GC_state s) {
+  GC_thread thread;
+
+  d->lastMajorStatistics.bytesLive = 0;
+
+  /* Use the original to allocate */
+  thread = newThread (s, sizeofStackInitialReserved (s));
+
+  /* Now copy stats, heap data from original */
+  d->cumulativeStatistics.maxHeapSize = s->cumulativeStatistics.maxHeapSize;
+  d->heap = s->heap;
+  d->secondaryHeap = s->secondaryHeap;
+  d->generationalMaps = s->generationalMaps;
+
+  /* Allocation handled in setGCStateCurrentHeap when called from initWorld */
+
+  switchToThread (d, pointerToObjptr((pointer)thread - offsetofThread (d), d->heap.start));
+}
