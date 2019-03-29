@@ -1,9 +1,8 @@
-(* Copyright (C) 2015 Matthew Fluet.
- * Copyright (C) 1999-2006, 2008 Henry Cejtin, Matthew Fluet, Suresh
+(* Copyright (C) 1999-2006, 2008 Henry Cejtin, Matthew Fluet, Suresh
  *    Jagannathan, and Stephen Weeks.
  * Copyright (C) 1997-2000 NEC Research Institute.
  *
- * MLton is released under a HPND-style license.
+ * MLton is released under a BSD-style license.
  * See the file MLton-LICENSE for details.
  *)
 
@@ -12,9 +11,11 @@ struct
 
 open Posix.Signal
 structure Prim = PrimitiveFFI.Posix.Signal
+structure PrimWorld = Primitive.MLton.World
 structure Error = PosixError
 structure SysCall = Error.SysCall
 val restart = SysCall.restartFlag
+val gcState = Primitive.MLton.GCState.gcState
 
 type t = signal
 
@@ -27,59 +28,79 @@ fun raiseInval () =
       raiseSys inval
    end
 
+val validSignals =
+   Array.tabulate
+   (C_Int.toInt Prim.NSIG, fn i =>
+    SysCall.syscallErr
+    ({clear = false, restart = false, errVal = C_Int.fromInt ~1}, fn () =>
+     {return = Prim.sigismember (repFromInt i),
+      post = fn _ => true,
+      handlers = [(Error.inval, fn () => false)]}))
+
 structure Mask =
    struct
-      type pre_sig_set = Word8.word array
-      type sig_set = Word8.word vector
-      fun newSigSet (): (pre_sig_set * (unit -> sig_set)) =
-         let
-            val sslen = C_Size.toInt Prim.sigSetLen
-            val ss = Array.array (sslen, 0wx0: Word8.word)
-         in
-            (ss, fn () => Array.vector ss)
-         end
+      datatype t =
+         AllBut of signal list
+       | Some of signal list
 
-      type t = sig_set
+      val allBut = AllBut
+      val some = Some
 
-      fun allBut sigs =
-         let
-            val (ss, finish) = newSigSet ()
-            val () = SysCall.simple (fn () => Prim.sigfillset ss)
-            val () = List.app (fn s => SysCall.simple
-                                       (fn () => Prim.sigdelset (ss, toRep s)))
-                              sigs
-         in
-            finish ()
-         end
       val all = allBut []
-      fun some sigs =
-         let
-            val (ss, finish) = newSigSet ()
-            val () = SysCall.simple (fn () => Prim.sigemptyset ss)
-            val () = List.app (fn s => SysCall.simple
-                                       (fn () => Prim.sigaddset (ss, toRep s)))
-                              sigs
-         in
-            finish ()
-         end
       val none = some []
 
-      fun isMember (ss, s) =
-         SysCall.simpleResult (fn () => Prim.sigismember (ss, toRep s)) <> C_Int.zero
+      fun read () =
+         Some
+         (Array.foldri
+          (fn (i, b, sigs) =>
+           if b
+              then let
+                      val s = fromInt i
+                      val s' = repFromInt i
+                      val res =
+                         SysCall.simpleResult
+                         (fn () => Prim.sigismember s')
+                   in
+                      if res = C_Int.fromInt 1
+                         then s::sigs
+                         else sigs
+                   end
+              else sigs)
+          []
+          validSignals)
+
+      fun write m =
+         case m of
+            AllBut signals =>
+               (SysCall.simple Prim.sigfillset
+                ; List.app (fn s => SysCall.simple
+                                    (fn () => Prim.sigdelset (toRep s)))
+                           signals)
+          | Some signals =>
+               (SysCall.simple Prim.sigemptyset
+                ; List.app (fn s => SysCall.simple
+                                    (fn () => Prim.sigaddset (toRep s)))
+                           signals)
 
       local
-         fun make (how: how) (ss: t) =
-            let
-               val (oss, finish) = newSigSet ()
-               val () = SysCall.simpleRestart (fn () => Prim.sigprocmask (how, ss, oss))
-            in
-               finish ()
-            end
+         fun make (how: how) (m: t) =
+            (write m; SysCall.simpleRestart (fn () => Prim.pthread_sigmask how))
       in
-         val block = ignore o make Prim.SIG_BLOCK
-         val unblock = ignore o make Prim.SIG_UNBLOCK
-         val setBlocked = ignore o make Prim.SIG_SETMASK
-         fun getBlocked () = make Prim.SIG_BLOCK none
+         val block = make Prim.SIG_BLOCK
+         val unblock = make Prim.SIG_UNBLOCK
+         val setBlocked = make Prim.SIG_SETMASK
+         fun getBlocked () = (make Prim.SIG_BLOCK none; read ())
+      end
+
+      local
+         fun member (sigs, s) = List.exists (fn s' => s = s') sigs
+      in
+         fun isMember (mask, s) =
+            if Array.sub (validSignals, toInt s)
+               then case mask of
+                       AllBut sigs => not (member (sigs, s))
+                     | Some sigs => member (sigs, s)
+               else raiseInval ()
       end
    end
 
@@ -95,40 +116,71 @@ structure Handler =
 datatype handler = datatype Handler.t
 
 local
-   val r = ref C_Int.zero
+   val numProcessors = PacmlFFI.numberOfProcessors
+   val procNum = PacmlFFI.processorNumber
+
+   (* XXX KC : per-thread state *)
+   val r = Array.tabulate(numProcessors, fn _ => ref C_Int.zero)
 in
    fun initHandler (s: signal): Handler.t =
       SysCall.syscallErr
       ({clear = false, restart = false, errVal = C_Int.fromInt ~1}, fn () =>
-       {return = Prim.isDefault (toRep s, r),
-        post = fn _ => if !r <> C_Int.zero then Default else Ignore,
+       {return = Prim.isDefault (toRep s, Array.unsafeSub(r,procNum())),
+        post = fn _ => if !(Array.unsafeSub(r,procNum())) <> C_Int.zero then Default else Ignore,
         handlers = [(Error.inval, fn () => InvalidSignal)]})
+
+    val gcHandlers = Array.tabulate(numProcessors, fn _ => Ignore)
 end
 
 val (getHandler, setHandler, handlers) =
    let
-      val handlers = Array.tabulate (C_Int.toInt Prim.NSIG, initHandler o fromInt)
-      val _ =
+      val localhandlers = fn () => Array.tabulate (C_Int.toInt Prim.NSIG, initHandler o fromInt)
+      (* A localHandlers array for each processor *)
+      val handlersArr = Array.tabulate
+      (PacmlFFI.numberOfProcessors, fn _ => localhandlers ())
+     fun init h =
          Cleaner.addNew
          (Cleaner.atLoadWorld, fn () =>
-          Array.modifyi (initHandler o fromInt o #1) handlers)
+          Array.modifyi (initHandler o fromInt o #1) h)
+
+     val numProc = PacmlFFI.numberOfProcessors
+     (* KC Used for CML *)
+     fun setHandlerForAll h s =
+     let
+       val _ = Array.tabulate(numProc, fn p =>
+                     Array.update(Array.unsafeSub(handlersArr,p), toInt
+                     s, h))
+     in
+       ()
+     end
+
+     (* Initialize localHandlers *)
+     val _ = Array.app init handlersArr
+
+     val procNum = PacmlFFI.processorNumber
    in
-      (fn s: t => Array.sub (handlers, toInt s),
+      (fn s: t => Array.sub (Array.unsafeSub(handlersArr, procNum()), toInt s),
        fn (s: t, h) => if Primitive.MLton.Profile.isOn andalso s = prof
                           then raiseInval ()
-                       else Array.update (handlers, toInt s, h),
-       handlers)
+                       else
+                         if (PrimWorld.getIsPCML gcState) andalso (s = alrm) andalso
+                         (case h of
+                            Handler _ => true
+                          | _ => false)
+                         then
+                           setHandlerForAll h s
+                         else
+                          Array.update (Array.unsafeSub (handlersArr,procNum ()), toInt s, h),
+       fn () => Array.unsafeSub(handlersArr, procNum()))
    end
-
-val gcHandler = ref Ignore
 
 fun handled () =
    Mask.some
    (Array.foldri
     (fn (s, h, sigs) =>
-     case h of 
+     case h of
         Handler _ => (fromInt s)::sigs
-      | _ => sigs) [] handlers)
+      | _ => sigs) [] (handlers()) )
 
 structure Handler =
    struct
@@ -169,10 +221,11 @@ structure Handler =
                 let
                    val mask = Mask.getBlocked ()
                    val () = Mask.block (handled ())
-                   val fs = 
-                      case !gcHandler of
-                         Handler f => if Prim.isPendingGC () <> C_Int.zero 
-                                         then [f] 
+                   val proc = PacmlFFI.processorNumber()
+                   val fs =
+                      case Array.unsafeSub(gcHandlers,proc) of
+                         Handler f => if Prim.isPendingGC () <> C_Int.zero
+                                         then [f]
                                          else []
                        | _ => []
                    val fs =
@@ -181,9 +234,9 @@ structure Handler =
                        case h of
                           Handler f =>
                              if Prim.isPending (repFromInt s) <> C_Int.zero
-                                then f::fs 
+                                then f::fs
                                 else fs
-                        | _ => fs) fs handlers
+                        | _ => fs) fs (handlers())
                    val () = Prim.resetPending ()
                    val () = Mask.setBlocked mask
                 in
@@ -201,25 +254,46 @@ val setHandler = fn (s, h) =>
       (InvalidSignal, _) => raiseInval ()
     | (_, InvalidSignal) => raiseInval ()
     | (Default, Default) => ()
-    | (_, Default) => 
+    (* KC don't call into c for CML & SIGALRM *)
+    | (_, Default) =>
          (setHandler (s, Default)
-          ; SysCall.simpleRestart (fn () => Prim.default (toRep s)))
+         (* Prevent this thread from handling C alrm signal if CML since
+          * we have installed a separate signal handler therad.
+          * XXX KC : pthread_sigmask is set in c-main.h. So Is this redundant??
+          *)
+         ; if (PrimWorld.getIsPCML gcState) andalso s = alrm then
+                ()
+           else
+                SysCall.simpleRestart (fn () => Prim.default (toRep s)))
+    (* XXX KC modified because the request may be for another processor*)
     | (Handler _, Handler _) =>
-         setHandler (s, h)
+         (setHandler (s, h)
+          ; if (PrimWorld.getIsPCML gcState) andalso s = alrm then
+                ()
+           else
+                SysCall.simpleRestart (fn () => Prim.handlee (toRep s)))
     | (_, Handler _) =>
          (setHandler (s, h)
-          ; SysCall.simpleRestart (fn () => Prim.handlee (toRep s)))
+          ; if (PrimWorld.getIsPCML gcState) andalso s = alrm then
+                ()
+           else
+               SysCall.simpleRestart (fn () => Prim.handlee (toRep s)))
     | (Ignore, Ignore) => ()
-    | (_, Ignore) => 
+    | (_, Ignore) =>
          (setHandler (s, Ignore)
-          ; SysCall.simpleRestart (fn () => Prim.ignore (toRep s)))
+          ;if (PrimWorld.getIsPCML gcState) andalso s = alrm then
+                ()
+           else
+                SysCall.simpleRestart (fn () => Prim.ignore (toRep s)))
 
 fun suspend m =
-   (Prim.sigsuspend m
+   (Mask.write m
+    ; Prim.sigsuspend ()
     ; MLtonThread.switchToSignalHandler ())
 
 fun handleGC f =
    (Prim.handleGC ()
-    ; gcHandler := Handler.simple f)
+    ; Array.update (gcHandlers,PacmlFFI.processorNumber (),
+    Handler.simple f))
 
 end

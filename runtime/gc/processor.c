@@ -2,6 +2,9 @@
 #include <pthread.h>
 
 int32_t Proc_processorNumber (GC_state s) {
+//  if (s->procStates == 0) {
+//    fprintf (stderr, "s->numberOfProcs = %i\n", s->numberOfProcs);
+  //}
   for (int proc = 0; proc < s->numberOfProcs; proc ++) {
     if (s == &(s->procStates[proc])) {
       return (int32_t)proc;

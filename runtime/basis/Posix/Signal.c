@@ -1,17 +1,29 @@
 #include "platform.h"
 
-extern struct GC_state gcState;
+extern pthread_key_t gcstate_key;
 
 static void handler (int signum) {
-  GC_handler (&gcState, signum);
+    if (Parallel_processorNumber () != 0) return;
+    GC_state gcState = pthread_getspecific(gcstate_key);
+    GC_handler(gcState,signum);
 }
+
+enum {
+#if (defined (SA_ONSTACK))
+  SA_FLAGS = SA_ONSTACK,
+#else
+  SA_FLAGS = 0,
+#endif
+};
 
 C_Errno_t(C_Int_t) Posix_Signal_default (C_Signal_t signum) {
   struct sigaction sa;
 
+  GC_state gcState = pthread_getspecific(gcstate_key);
   sigdelset (GC_getSignalsHandledAddr (&gcState), signum);
   memset (&sa, 0, sizeof(sa));
   sa.sa_handler = SIG_DFL;
+  sa.sa_flags = SA_FLAGS;
   return sigaction (signum, &sa, NULL);
 }
 
@@ -19,7 +31,7 @@ C_Errno_t(C_Int_t) Posix_Signal_isDefault (C_Int_t signum, Ref(C_Int_t) isDef) {
   int res;
   struct sigaction sa;
 
-  memset (&sa, 0, sizeof(sa));
+  sa.sa_flags = SA_FLAGS;
   res = sigaction (signum, NULL, &sa);
   *((C_Int_t*)isDef) = sa.sa_handler == SIG_DFL;
   return res;
@@ -28,9 +40,11 @@ C_Errno_t(C_Int_t) Posix_Signal_isDefault (C_Int_t signum, Ref(C_Int_t) isDef) {
 C_Errno_t(C_Int_t) Posix_Signal_ignore (C_Signal_t signum) {
   struct sigaction sa;
 
+  GC_state gcState = pthread_getspecific(gcstate_key);
   sigdelset (GC_getSignalsHandledAddr (&gcState), signum);
   memset (&sa, 0, sizeof(sa));
   sa.sa_handler = SIG_IGN;
+  sa.sa_flags = SA_FLAGS;
   return sigaction (signum, &sa, NULL);
 }
 
@@ -38,78 +52,100 @@ C_Errno_t(C_Int_t) Posix_Signal_isIgnore (C_Int_t signum, Ref(C_Int_t) isIgn) {
   int res;
   struct sigaction sa;
 
-  memset (&sa, 0, sizeof(sa));
+  sa.sa_flags = SA_FLAGS;
   res = sigaction (signum, NULL, &sa);
   *((C_Int_t*)isIgn) = sa.sa_handler == SIG_IGN;
   return res;
 }
 
 C_Errno_t(C_Int_t) Posix_Signal_handlee (C_Int_t signum) {
-  struct sigaction sa;
+  GC_state gcState = pthread_getspecific(gcstate_key);
+  static struct sigaction sa;
 
   sigaddset (GC_getSignalsHandledAddr (&gcState), signum);
   memset (&sa, 0, sizeof(sa));
-  /* The mask must be full because GC_handler reads and writes 
+  /* The mask must be full because GC_handler reads and writes
    * s->signalsPending (else there is a race condition).
    */
-  sigfillset (&sa.sa_mask);
-#if HAS_SIGALTSTACK
-  sa.sa_flags = SA_ONSTACK;
-#endif
+  sigfillset (&(sa.sa_mask));
   sa.sa_handler = handler;
+  sa.sa_flags = SA_FLAGS;
+  //printf("\nHandlee : Processor number : %d signum : %d\n",Proc_processorNumber (gcState), signum);
+  //fflush(stdout);
+
   return sigaction (signum, &sa, NULL);
 }
 
 void Posix_Signal_handleGC (void) {
+  GC_state gcState = pthread_getspecific(gcstate_key);
   GC_setGCSignalHandled (&gcState, TRUE);
 }
 
 C_Int_t Posix_Signal_isPending (C_Int_t signum) {
+  GC_state gcState = pthread_getspecific(gcstate_key);
   return sigismember (GC_getSignalsPendingAddr (&gcState), signum);
 }
 
 C_Int_t Posix_Signal_isPendingGC (void) {
+  GC_state gcState = pthread_getspecific(gcstate_key);
   return GC_getGCSignalPending (&gcState);
 }
 
 void Posix_Signal_resetPending (void) {
+  GC_state gcState = pthread_getspecific(gcstate_key);
   sigemptyset (GC_getSignalsPendingAddr (&gcState));
   GC_setGCSignalPending (&gcState, FALSE);
 }
 
-C_Errno_t(C_Int_t) Posix_Signal_sigaddset (Array(Word8_t) sigset, C_Signal_t signum) {
-  return sigaddset ((sigset_t*)sigset, signum);
+
+C_Errno_t(C_Int_t) Posix_Signal_sigaddset (C_Signal_t signum) {
+  GC_state gcState = pthread_getspecific(gcstate_key);
+  sigset_t* set = GC_getSignalsSet(&gcState);
+  return sigaddset (set, signum);
 }
 
-C_Errno_t(C_Int_t) Posix_Signal_sigdelset (Array(Word8_t) sigset, C_Signal_t signum) {
-  return sigdelset ((sigset_t*)sigset, signum);
+C_Errno_t(C_Int_t) Posix_Signal_sigdelset (C_Signal_t signum) {
+  GC_state gcState = pthread_getspecific(gcstate_key);
+  sigset_t* set = GC_getSignalsSet(&gcState);
+  return sigdelset (set, signum);
 }
 
-C_Errno_t(C_Int_t) Posix_Signal_sigemptyset (Array(Word8_t) sigset) {
-  return sigemptyset ((sigset_t*)sigset);
+C_Errno_t(C_Int_t) Posix_Signal_sigemptyset (void) {
+  GC_state gcState = pthread_getspecific(gcstate_key);
+  sigset_t* set = GC_getSignalsSet(&gcState);
+  return sigemptyset (set);
 }
 
-C_Errno_t(C_Int_t) Posix_Signal_sigfillset (Array(Word8_t) sigset) {
-  return sigfillset ((sigset_t*)sigset);
+C_Errno_t(C_Int_t) Posix_Signal_sigfillset (void) {
+  GC_state gcState = pthread_getspecific(gcstate_key);
+  sigset_t* set = GC_getSignalsSet(&gcState);
+  return sigfillset (set);
 }
 
-C_Errno_t(C_Int_t) Posix_Signal_sigismember (Vector(Word8_t) sigset, C_Signal_t signum) {
-  return sigismember ((sigset_t*)sigset, signum);
+C_Errno_t(C_Int_t) Posix_Signal_sigismember (C_Signal_t signum) {
+  GC_state gcState = pthread_getspecific(gcstate_key);
+  sigset_t* set = GC_getSignalsSet(&gcState);
+  return sigismember (set, signum);
 }
 
-C_Errno_t(C_Int_t) Posix_Signal_sigprocmask (C_Int_t how, Vector(Word8_t) sigset, Array(Word8_t) oldsigset) {
-  return sigprocmask (how, (sigset_t*)sigset, (sigset_t*)oldsigset);
+C_Errno_t(C_Int_t) Posix_Signal_sigprocmask (C_Int_t how) {
+  GC_state gcState = pthread_getspecific(gcstate_key);
+  sigset_t* set = GC_getSignalsSet(&gcState);
+  return sigprocmask (how, set, set);
 }
 
-#if ASSERT
-#define LOCAL_USED_FOR_ASSERT
-#else
-#define LOCAL_USED_FOR_ASSERT  __attribute__ ((unused))
-#endif
+C_Errno_t(C_Int_t) Posix_Signal_pthread_sigmask (C_Int_t how) {
+  GC_state gcState = pthread_getspecific(gcstate_key);
+  sigset_t* set = GC_getSignalsSet(&gcState);
+  return pthread_sigmask (how, set, set);
+}
 
-void Posix_Signal_sigsuspend (Vector(Word8_t) sigset) {
-  LOCAL_USED_FOR_ASSERT int res;
 
-  res = sigsuspend ((sigset_t*)sigset);
+void Posix_Signal_sigsuspend (void) {
+  GC_state gcState = pthread_getspecific(gcstate_key);
+  sigset_t* set = GC_getSignalsSet(&gcState);
+  int res;
+
+  res = sigsuspend (set);
   assert (-1 == res);
 }
