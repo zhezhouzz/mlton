@@ -49,6 +49,8 @@ struct GC_controls {
   bool messages; /* Print a message at the start and end of each gc. */
   size_t oldGenSequenceSize; /* Sequences larger are allocated in old gen, if possible. */
   struct GC_ratios ratios;
+  int32_t affinityBase; /* First processor to use when setting affinity */
+  int32_t affinityStride; /* Number of processors between first and second */
   bool rusageMeasureGC;
   bool summary; /* Print a summary of gc info when program exits. */
   FILE* summaryFile;

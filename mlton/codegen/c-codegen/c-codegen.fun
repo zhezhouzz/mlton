@@ -252,7 +252,7 @@ fun declareGlobals (prefix: string, print) =
       (* gcState can't be static because stuff in mlton-lib.c refers to
        * it.
        *)
-      val _ = print (concat [prefix, "struct GC_state gcState;\n"])
+      val _ = print (concat [prefix, "struct GC_state * gcState;\n"])
       val _ =
          List.foreach
          (CType.all, fn t =>

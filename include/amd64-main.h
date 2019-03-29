@@ -1,7 +1,7 @@
 /* Copyright (C) 2000-2007 Henry Cejtin, Matthew Fluet, Suresh
  *    Jagannathan, and Stephen Weeks.
  *
- * MLton is released under a HPND-style license.
+ * MLton is released under a BSD-style license.
  * See the file MLton-LICENSE for details.
  */
 
@@ -9,6 +9,19 @@
 #define _AMD64_MAIN_H_
 
 #include "common-main.h"
+
+#ifndef DEBUG_AMD64CODEGEN
+#define DEBUG_AMD64CODEGEN TRUE
+#endif
+
+#ifndef DEBUG_ALRM
+#define DEBUG_ALRM FALSE
+#endif
+
+/* A key whose value will be a unique integer per thread */
+extern pthread_key_t gcstate_key;
+
+PRIVATE extern struct GC_state * gcState;
 
 /* Globals */
 PRIVATE Word64 applyFFTempFun;
@@ -23,31 +36,24 @@ PRIVATE Word64 fpcvtTemp;
 PRIVATE Word32 fpeqTemp;
 PRIVATE Word64 divTemp;
 PRIVATE Word64 indexTemp;
-PRIVATE Word64 overflowCheckTemp;
 PRIVATE Word64 raTemp1;
 PRIVATE Word64 spill[32];
 PRIVATE Word64 stackTopTemp;
-
-#ifndef DEBUG_AMD64CODEGEN
-#define DEBUG_AMD64CODEGEN FALSE
-#endif
-
-extern pthread_key_t gcstate_key;
 
 static GC_frameIndex returnAddressToFrameIndex (GC_returnAddress ra) {
         return *((GC_frameIndex*)(ra - sizeof(GC_frameIndex)));
 }
 
 #define MLtonCallFromC                                                  \
-pthread_key_t gcstate_key;                                              \
+/* Globals */                                                           \
+pthread_key_t gcstate_key;                                            \
 PRIVATE void MLton_jumpToSML (pointer jump);                            \
-static void MLton_callFromC () {                                        \
+static void MLton_callFromC (pointer ffiOpArgsResPtr) {                 \
         pointer jump;                                                   \
-        GC_state s;                                                     \
+        GC_state s = pthread_getspecific (gcstate_key);                 \
                                                                         \
         if (DEBUG_AMD64CODEGEN)                                         \
                 fprintf (stderr, "MLton_callFromC() starting\n");       \
-        s = &gcState;                                                   \
         GC_setSavedThread (s, GC_getCurrentThread (s));                 \
         s->atomicState += 3;                                            \
         if (s->signalsInfo.signalIsPending)                             \
@@ -68,19 +74,79 @@ static void MLton_callFromC () {                                        \
 
 #define MLtonMain(al, mg, mfs, mmc, pk, ps, ml)                         \
 MLtonCallFromC                                                          \
-PUBLIC int MLton_main (int argc, char* argv[]) {                        \
+                                                                        \
+void run (void *arg) {                                                  \
         pointer jump;                                                   \
         extern pointer ml;                                              \
+        GC_state s = (GC_state)arg;                                     \
+        if (s == NULL) {                                                \
+            fprintf (stderr, "gcState is NULL\n");                      \
+            exit (1);                                                   \
+        }                                                               \
+        uint32_t num = Proc_processorNumber (s)                         \
+                * s->controls.affinityStride                           \
+                + s->controls.affinityBase;                            \
+         set_cpu_affinity(num);                                         \
                                                                         \
-        Initialize (al, mg, mfs, mmc, pk, ps);                          \
-        if (gcState.amOriginal) {                                       \
+        /* Save our state locally */                                    \
+        pthread_setspecific (gcstate_key, s);                           \
+        /* Mask ALRM signal */                                          \
+                                                                        \
+        if (s->amOriginal) {                                            \
+                fprintf (stderr, "Real init\n");                        \
                 real_Init();                                            \
                 jump = (pointer)&ml;                                    \
         } else {                                                        \
-                jump = *(pointer*)(gcState.stackTop - GC_RETURNADDRESS_SIZE); \
+                /* Return to the saved world */                         \
+                jump = *(pointer*)(s->stackTop - GC_RETURNADDRESS_SIZE); \
         }                                                               \
-        MLton_jumpToSML(jump);                                          \
-        return 1;                                                       \
+        /* Check to see whether or not we are the first thread */       \
+        if (Proc_amPrimary (s)) {                                       \
+            fprintf (stderr, "main jump\n");                             \
+            MLton_jumpToSML(jump);                                      \
+        }                                                               \
+        else {                                                          \
+                Proc_waitForInitialization (s);                         \
+                Parallel_run ();                                        \
+        }                                                               \
+}                                                                       \
+                                                                        \
+PUBLIC int MLton_main (int argc, char* argv[]) {                        \
+        int procNo;                                                     \
+        pthread_t *threads;                                             \
+        {                                                               \
+                struct GC_state s;                                      \
+                /* Initialize with a generic state to read in @MLtons, etc */ \
+                Initialize (s, al, mg, mfs, mmc, pk, ps, 0);            \
+                                                                        \
+                threads = (pthread_t *) malloc ((s.numberOfProcs) * sizeof (pthread_t)); \
+                gcState = (GC_state) malloc ((s.numberOfProcs+1) * sizeof (struct GC_state)); \
+                /* Create key */                                        \
+                if (pthread_key_create(&gcstate_key, NULL)) {           \
+                        fprintf (stderr, "pthread_key_create failed: %s\n", strerror (errno)); \
+                        exit (1);                                       \
+                }                                                       \
+                /* Now copy initialization to the first processor state */      \
+                memcpy (&gcState[0], &s, sizeof (struct GC_state));     \
+                gcState[0].procStates = gcState;                        \
+                GC_lateInit (&gcState[0]);                              \
+        }                                                               \
+        /* Fill in per-processor data structures */                     \
+        for (procNo = 1; procNo <= gcState[0].numberOfProcs; procNo++) { \
+                Duplicate (&gcState[procNo], &gcState[0]);              \
+                gcState[procNo].procStates = gcState;                   \
+                if (procNo == gcState[0].numberOfProcs)                 \
+                    gcState[procNo].atomicState = 0;                    \
+        }                                                               \
+        /* Now create the threads */                                    \
+        for (procNo = 1; procNo < gcState[0].numberOfProcs; procNo++) { \
+                if (pthread_create (&threads[procNo - 1], NULL, &run, (void *)&gcState[procNo])) { \
+                        fprintf (stderr, "pthread_create failed: %s\n", strerror (errno)); \
+                        exit (1);                                       \
+                }                                                       \
+        }                                                               \
+        /* Create the alrmHandler thread */                             \
+        run ((void *)&gcState[0]);                                      \
 }
 
 #define MLtonLibrary(al, mg, mfs, mmc, pk, ps, ml)                      \
@@ -89,20 +155,22 @@ PUBLIC void LIB_OPEN(LIBNAME) (int argc, char* argv[]) {                \
         pointer jump;                                                   \
         extern pointer ml;                                              \
                                                                         \
-        Initialize (al, mg, mfs, mmc, pk, ps);                          \
-        if (gcState.amOriginal) {                                       \
+        gcState = (GC_state) malloc (sizeof (struct GC_state));         \
+        Initialize (gcState[0], al, mg, mfs, mmc, pk, ps, 0);           \
+        GC_state s = &gcState[0];                                       \
+        if (s->amOriginal) {                                            \
                 real_Init();                                            \
                 jump = (pointer)&ml;                                    \
         } else {                                                        \
-                jump = *(pointer*)(gcState.stackTop - GC_RETURNADDRESS_SIZE); \
+                jump = *(pointer*)(s->stackTop - GC_RETURNADDRESS_SIZE); \
         }                                                               \
         MLton_jumpToSML(jump);                                          \
 }                                                                       \
 PUBLIC void LIB_CLOSE(LIBNAME) () {                                     \
         pointer jump;                                                   \
-        jump = *(pointer*)(gcState.stackTop - GC_RETURNADDRESS_SIZE);   \
+        GC_state s = &gcState[0];                                       \
+        jump = *(pointer*)(s->stackTop - GC_RETURNADDRESS_SIZE);   \
         MLton_jumpToSML(jump);                                          \
-        GC_done(&gcState);                                              \
 }
 
 #endif /* #ifndef _AMD64_MAIN_H_ */

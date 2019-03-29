@@ -125,6 +125,16 @@ int processAtMLton (GC_state s, int start, int argc, char **argv,
           if (s->controls.summaryFile == NULL) {
             die ("Invalid @MLton gc-summary-file %s (%s).", argv[i-1], strerror(errno));
           }
+        } else if (0 == strcmp (arg, "affinity-base")) {
+          i++;
+          if (i == argc)
+            die ("@MLton affinity-base missing argument.");
+          s->controls.affinityBase = stringToInt (argv[i++]);
+        } else if (0 == strcmp (arg, "affinity-stride")) {
+          i++;
+          if (i == argc)
+            die ("@MLton affinity-stride missing argument.");
+          s->controls.affinityStride = stringToInt (argv[i++]);
         } else if (0 == strcmp (arg, "grow-ratio")) {
           i++;
           if (i == argc || 0 == strcmp (argv[i], "--"))
@@ -299,6 +309,8 @@ int GC_init (GC_state s, int argc, char **argv) {
   s->controls.mayProcessAtMLton = TRUE;
   s->controls.messages = FALSE;
   s->controls.oldGenSequenceSize = 0x100000;
+  s->controls.affinityBase = 0;
+  s->controls.affinityStride = 1;
   s->controls.ratios.copy = 4.0f;
   s->controls.ratios.copyGenerational = 4.0f;
   s->controls.ratios.grow = 8.0f;
