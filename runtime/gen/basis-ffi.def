@@ -605,6 +605,7 @@ Posix.Signal.isDefault = _import PRIVATE : C_Signal.t * C_Int.t ref -> C_Int.t C
 Posix.Signal.isIgnore = _import PRIVATE : C_Signal.t * C_Int.t ref -> C_Int.t C_Errno.t
 Posix.Signal.isPending = _import PRIVATE : C_Signal.t -> C_Int.t
 Posix.Signal.isPendingGC = _import PRIVATE : unit -> C_Int.t
+Posix.Signal.pthread_sigmask = _import PRIVATE : C_Int.t -> C_Int.t C_Errno.t
 Posix.Signal.resetPending = _import PRIVATE :unit -> unit
 Posix.Signal.sigaddset = _import PRIVATE : C_Signal.t -> C_Int.t C_Errno.t
 Posix.Signal.sigdelset = _import PRIVATE : C_Signal.t -> C_Int.t C_Errno.t

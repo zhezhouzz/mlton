@@ -105,6 +105,11 @@ void setGCStateCurrentHeap (GC_state s,
   assert (hasHeapBytesFree (s, oldGenBytesRequested, nurseryBytesRequested));
 }
 
+bool GC_getIsPCML (__attribute__ ((unused)) GC_state *gs) {
+  GC_state s = pthread_getspecific (gcstate_key);
+  return false;
+}
+
 bool GC_getAmOriginal (GC_state s) {
   return s->amOriginal;
 }
@@ -196,6 +201,11 @@ struct rusage* GC_getRusageGCAddr (GC_state s) {
 
 sigset_t* GC_getSignalsHandledAddr (GC_state s) {
   return &(s->signalsInfo.signalsHandled);
+}
+
+sigset_t* GC_getSignalsSet (__attribute__ ((unused)) GC_state *gs) {
+  GC_state s = pthread_getspecific (gcstate_key);
+  return &(s->signalsInfo.signalsSet);
 }
 
 sigset_t* GC_getSignalsPendingAddr (GC_state s) {

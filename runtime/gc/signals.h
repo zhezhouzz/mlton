@@ -26,6 +26,7 @@ struct GC_signalsInfo {
    * mutator signal handler.
    */
   sigset_t signalsPending;
+  sigset_t signalsSet;
 };
 
 #endif /* (defined (MLTON_GC_INTERNAL_TYPES)) */

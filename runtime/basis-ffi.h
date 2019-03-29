@@ -577,6 +577,7 @@ PRIVATE C_Errno_t(C_Int_t) Posix_Signal_isIgnore(C_Signal_t,Ref(C_Int_t));
 PRIVATE C_Int_t Posix_Signal_isPending(C_Signal_t);
 PRIVATE C_Int_t Posix_Signal_isPendingGC(void);
 PRIVATE extern const C_Int_t Posix_Signal_NSIG;
+PRIVATE C_Errno_t(C_Int_t) Posix_Signal_pthread_sigmask(C_Int_t);
 PRIVATE void Posix_Signal_resetPending(void);
 PRIVATE extern const C_Int_t Posix_Signal_SIG_BLOCK;
 PRIVATE extern const C_Int_t Posix_Signal_SIG_SETMASK;

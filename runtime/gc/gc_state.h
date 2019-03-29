@@ -91,6 +91,7 @@ static void setGCStateCurrentHeap (GC_state s,
 
 PRIVATE bool GC_getAmOriginal (GC_state s);
 PRIVATE void GC_setAmOriginal (GC_state s, bool b);
+PRIVATE bool GC_getIsPCML (GC_state *gs);
 PRIVATE void GC_setControlsMessages (GC_state s, bool b);
 PRIVATE void GC_setControlsSummary (GC_state s, bool b);
 PRIVATE void GC_setControlsRusageMeasureGC (GC_state s, bool b);
@@ -118,3 +119,4 @@ PRIVATE sigset_t* GC_getSignalsPendingAddr (GC_state s);
 PRIVATE void GC_setGCSignalHandled (GC_state s, bool b);
 PRIVATE bool GC_getGCSignalPending (GC_state s);
 PRIVATE void GC_setGCSignalPending (GC_state s, bool b);
+PRIVATE sigset_t* GC_getSignalsSet (GC_state *gs);

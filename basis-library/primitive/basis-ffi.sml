@@ -699,6 +699,7 @@ val isIgnore = _import "Posix_Signal_isIgnore" private : C_Signal.t * (C_Int.t) 
 val isPending = _import "Posix_Signal_isPending" private : C_Signal.t -> C_Int.t;
 val isPendingGC = _import "Posix_Signal_isPendingGC" private : unit -> C_Int.t;
 val NSIG = _const "Posix_Signal_NSIG" : C_Int.t;
+val pthread_sigmask = _import "Posix_Signal_pthread_sigmask" private : C_Int.t -> (C_Int.t) C_Errno.t;
 val resetPending = _import "Posix_Signal_resetPending" private : unit -> unit;
 val SIG_BLOCK = _const "Posix_Signal_SIG_BLOCK" : C_Int.t;
 val SIG_SETMASK = _const "Posix_Signal_SIG_SETMASK" : C_Int.t;
