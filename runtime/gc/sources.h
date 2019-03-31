@@ -2,7 +2,7 @@
  *    Jagannathan, and Stephen Weeks.
  * Copyright (C) 1997-2000 NEC Research Institute.
  *
- * MLton is released under a HPND-style license.
+ * MLton is released under a BSD-style license.
  * See the file MLton-LICENSE for details.
  */
 
@@ -86,6 +86,6 @@ static void showSources (GC_state s);
 
 #if (defined (MLTON_GC_INTERNAL_BASIS))
 
-PRIVATE char* GC_sourceName (GC_state s, GC_sourceIndex i);
+PRIVATE char* GC_sourceName (GC_state *gs, GC_sourceIndex i);
 
 #endif /* (defined (MLTON_GC_INTERNAL_BASIS)) */

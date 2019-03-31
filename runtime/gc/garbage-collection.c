@@ -147,7 +147,7 @@ void performGC (GC_state s,
       or totalBytesRequested > s->heap.size - s->heap.oldGenSize)
     majorGC (s, totalBytesRequested, mayResize);
   setGCStateCurrentHeap (s, oldGenBytesRequested + stackBytesRequested, 
-                         nurseryBytesRequested);
+                         nurseryBytesRequested, false);
   assert (hasHeapBytesFree (s, oldGenBytesRequested + stackBytesRequested,
                             nurseryBytesRequested));
   unless (stackTopOk)

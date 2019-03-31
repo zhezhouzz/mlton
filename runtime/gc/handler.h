@@ -2,7 +2,7 @@
  *    Jagannathan, and Stephen Weeks.
  * Copyright (C) 1997-2000 NEC Research Institute.
  *
- * MLton is released under a HPND-style license.
+ * MLton is released under a BSD-style license.
  * See the file MLton-LICENSE for details.
  */
 
@@ -14,8 +14,8 @@ static inline void switchToSignalHandlerThreadIfNonAtomicAndSignalPending (GC_st
 
 #if (defined (MLTON_GC_INTERNAL_BASIS))
 
-PRIVATE void GC_startSignalHandler (GC_state s);
-PRIVATE void GC_finishSignalHandler (GC_state s);
+PRIVATE void GC_startSignalHandler (GC_state *gs);
+PRIVATE void GC_finishSignalHandler (GC_state *gs);
 
 #endif /* (defined (MLTON_GC_INTERNAL_BASIS)) */
 

@@ -2,7 +2,7 @@
  *    Jagannathan, and Stephen Weeks.
  * Copyright (C) 1997-2000 NEC Research Institute.
  *
- * MLton is released under a HPND-style license.
+ * MLton is released under a BSD-style license.
  * See the file MLton-LICENSE for details.
  */
 
@@ -22,7 +22,7 @@ void loadWorldFromFILE (GC_state s, FILE *f) {
   s->callFromCHandlerThread = readObjptr (f);
   s->currentThread = readObjptr (f);
   s->signalHandlerThread = readObjptr (f);
-  createHeap (s, &s->heap,
+  createHeap (s, s->heap,
               sizeofHeapDesired (s, s->heap.oldGenSize, 0),
               s->heap.oldGenSize);
   setCardMapAndCrossMap (s);
@@ -34,7 +34,7 @@ void loadWorldFromFILE (GC_state s, FILE *f) {
    * since it changes pointers in all of them.
    */
   translateHeap (s, start, s->heap.start, s->heap.oldGenSize);
-  setGCStateCurrentHeap (s, 0, 0);
+  setGCStateCurrentHeap (s, 0, 0, true);
   setGCStateCurrentThreadAndStack (s);
 }
 
@@ -60,7 +60,7 @@ int saveWorldToFILE (GC_state s, FILE *f) {
   /* Compact the heap. */
   performGC (s, 0, 0, TRUE, TRUE);
   snprintf (buf, cardof(buf),
-            "Heap file created by MLton.\nheap.start = "FMTPTR"\nbytesLive = %"PRIuMAX"\n",
+            "Heap file created by MLton.\nheap->start = "FMTPTR"\nbytesLive = %"PRIuMAX"\n",
             (uintptr_t)s->heap.start,
             (uintmax_t)s->lastMajorStatistics.bytesLive);
   len = strlen(buf) + 1; /* +1 to get the '\000' */
@@ -88,8 +88,9 @@ int saveWorldToFILE (GC_state s, FILE *f) {
 
 void GC_saveWorld (GC_state s, NullString8_t fileName) {
   FILE *f;
-
-  enter (s);
+  s->syncReason = SYNC_SAVE_WORLD;
+  /* XXX is fileName heap allocated? */
+  ENTER0 (s);
   f = fopen ((const char*)fileName, "wb");
   if (f == 0) {
     s->saveWorldStatus = false;
@@ -106,10 +107,11 @@ void GC_saveWorld (GC_state s, NullString8_t fileName) {
 
   s->saveWorldStatus = true;
 done:
-  leave (s);
+  LEAVE0 (s);
   return;
 }
 
-C_Errno_t(Bool_t) GC_getSaveWorldStatus (GC_state s) {
+C_Errno_t(Bool_t) GC_getSaveWorldStatus (__attribute__ ((unused)) GC_state *gs) {
+  GC_state s = pthread_getspecific (gcstate_key);
   return (Bool_t)(s->saveWorldStatus);
 }

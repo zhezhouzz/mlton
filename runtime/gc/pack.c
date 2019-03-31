@@ -1,18 +1,18 @@
-/* Copyright (C) 2012 Matthew Fluet.
- * Copyright (C) 1999-2008 Henry Cejtin, Matthew Fluet, Suresh
+/* Copyright (C) 1999-2008 Henry Cejtin, Matthew Fluet, Suresh
  *    Jagannathan, and Stephen Weeks.
  * Copyright (C) 1997-2000 NEC Research Institute.
  *
- * MLton is released under a HPND-style license.
+ * MLton is released under a BSD-style license.
  * See the file MLton-LICENSE for details.
  */
 
-void GC_pack (GC_state s) {
+void GC_pack (__attribute__ ((unused)) GC_state *gs) {
   size_t keep;
-
-  enter (s);
+  GC_state s = pthread_getspecific (gcstate_key);
+  s->syncReason = SYNC_PACK;
+  ENTER0 (s);
   if (DEBUG or s->controls.messages)
-    fprintf (stderr, 
+    fprintf (stderr,
              "[GC: Packing heap at "FMTPTR" of size %s bytes.]\n",
              (uintptr_t)(s->heap.start),
              uintmaxToCommaString(s->heap.size));
@@ -21,27 +21,29 @@ void GC_pack (GC_state s) {
    * do a minor GC to make all objects contiguous.
    */
   performGC (s, 0, 0, TRUE, FALSE);
-  keep = (size_t)(s->heap.oldGenSize * 1.1);
+  keep = s->heap.oldGenSize * 1.1;
   if (keep <= s->heap.size) {
-    shrinkHeap (s, &s->heap, keep);
+    shrinkHeap (s, *(s->heap), keep);
     setCardMapAndCrossMap (s);
-    setGCStateCurrentHeap (s, 0, 0);
+    setGCStateCurrentHeap (s, 0, 0, true);
     setGCStateCurrentThreadAndStack (s);
   }
-  releaseHeap (s, &s->secondaryHeap);
+  releaseHeap (s, s->secondaryHeap);
   if (DEBUG or s->controls.messages)
-    fprintf (stderr, 
+    fprintf (stderr,
              "[GC: Packed heap at "FMTPTR" to size %s bytes.]\n",
              (uintptr_t)(s->heap.start),
              uintmaxToCommaString(s->heap.size));
-  leave (s);
+  LEAVE0 (s);
 }
 
-void GC_unpack (GC_state s) {
-  enter (s);
+void GC_unpack (__attribute__ ((unused)) GC_state *gs) {
+  GC_state s = pthread_getspecific (gcstate_key);
+  s->syncReason = SYNC_PACK;
+  ENTER0 (s);
   if (DEBUG or s->controls.messages)
-    fprintf (stderr, 
-             "[GC: Unpacking heap at "FMTPTR" of size %s bytes.]\n", 
+    fprintf (stderr,
+             "[GC: Unpacking heap at "FMTPTR" of size %s bytes.]\n",
              (uintptr_t)(s->heap.start),
              uintmaxToCommaString(s->heap.size));
   /* The enterGC is needed here because minorGC and resizeHeap might
@@ -50,16 +52,16 @@ void GC_unpack (GC_state s) {
    */
   enterGC (s);
   minorGC (s);
-  resizeHeap (s, s->heap.oldGenSize);
+  resizeHeap (s, s->heap->oldGenSize);
   setCardMapAndCrossMap (s);
   resizeHeapSecondary (s);
-  setGCStateCurrentHeap (s, 0, 0);
+  setGCStateCurrentHeap (s, 0, 0, true);
   setGCStateCurrentThreadAndStack (s);
   leaveGC (s);
   if (DEBUG or s->controls.messages)
-    fprintf (stderr, 
+    fprintf (stderr,
              "[GC: Unpacked heap at "FMTPTR" to size %s bytes.]\n",
              (uintptr_t)(s->heap.start),
              uintmaxToCommaString(s->heap.size));
-  leave (s);
+  LEAVE0 (s);
 }

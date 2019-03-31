@@ -82,9 +82,10 @@ static void displayGCState (GC_state s, FILE *stream);
 
 static inline size_t sizeofGCStateCurrentStackUsed (GC_state s);
 static inline void setGCStateCurrentThreadAndStack (GC_state s);
-static void setGCStateCurrentHeap (GC_state s, 
-                                   size_t oldGenBytesRequested, 
-                                   size_t nurseryBytesRequested);
+static void setGCStateCurrentHeap (GC_state s,
+                                   size_t oldGenBytesRequested,
+                                   size_t nurseryBytesRequested,
+                                   bool duringInit);
 
 #endif /* (defined (MLTON_GC_INTERNAL_FUNCS)) */
 
