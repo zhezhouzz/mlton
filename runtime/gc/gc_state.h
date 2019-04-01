@@ -36,6 +36,8 @@ struct GC_state {
   GC_frameLayout frameLayouts; /* Array of frame layouts. */
   uint32_t frameLayoutsLength; /* Cardinality of frameLayouts array. */
   struct GC_generationalMaps generationalMaps;
+  /* Currently only used to hold raise operands. XXX at least i think so */
+  Pointer *globalObjptrNonRoot;
   objptr *globals;
   uint32_t globalsLength;
   bool hashConsDuringGC;

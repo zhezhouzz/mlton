@@ -1195,6 +1195,7 @@ fun output {program as Machine.Program.T {chunks,
                List.foreach
                ([("ExnStackOffset", GCField.ExnStack),
                  ("FrontierOffset", GCField.Frontier),
+                 ("GlobalObjptrNonRootOffset", GCField.GlobalObjptrNonRoot),
                  ("StackBottomOffset", GCField.StackBottom),
                  ("StackTopOffset", GCField.StackTop)],
                 fn (name, f) =>

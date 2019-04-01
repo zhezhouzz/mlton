@@ -57,6 +57,7 @@ val gcFields =
     "exnStack",
     "frontier",
     "generationalMaps.cardMapAbsolute",
+    "globalObjptrNonRoot",
     "limit",
     "limitPlusSlop",
     "maxFrameSize",
