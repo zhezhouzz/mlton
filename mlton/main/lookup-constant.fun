@@ -55,6 +55,7 @@ val gcFields =
     "currentThread",
     "sourceMaps.curSourceSeqsIndex",
     "exnStack",
+    "ffiOpArgsResPtr",
     "frontier",
     "generationalMaps.cardMapAbsolute",
     "globalObjptrNonRoot",

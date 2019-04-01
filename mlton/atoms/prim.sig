@@ -55,6 +55,7 @@ signature PRIM =
              | Exn_name (* implement exceptions *)
              | Exn_setExtendExtra (* implement exceptions *)
              | FFI of 'a CFunction.t (* to rssa *)
+             | FFI_getOpArgsResPtr (* XXX DOC spoons *)
              | FFI_Symbol of {name: string,
                               cty: CType.t option,
                               symbolScope: CFunction.SymbolScope.t } (* codegen *)

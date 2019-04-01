@@ -33,6 +33,7 @@ struct GC_state {
   struct GC_cumulativeStatistics cumulativeStatistics;
   objptr currentThread; /* Currently executing thread (in heap). */
   struct GC_forwardState forwardState;
+  pointer ffiOpArgsResPtr;
   GC_frameLayout frameLayouts; /* Array of frame layouts. */
   uint32_t frameLayoutsLength; /* Cardinality of frameLayouts array. */
   struct GC_generationalMaps generationalMaps;
@@ -48,7 +49,13 @@ struct GC_state {
   uint32_t magic; /* The magic number for this executable. */
   uint32_t maxFrameSize;
   bool mutatorMarksCards;
+  /* For PCML */
+  pthread_t pthread;
+  int32_t timeInterval; /* In milliseconds */
+  bool enableTimer;
+  /* The maximum amount of concurrency */
   int32_t numberOfProcs;
+  /* For I/O threads */
   int32_t numIOThreads;
   GC_objectHashTable objectHashTable;
   GC_objectType objectTypes; /* Array of object types. */

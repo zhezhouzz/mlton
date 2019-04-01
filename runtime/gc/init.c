@@ -285,7 +285,13 @@ int processAtMLton (GC_state s, int start, int argc, char **argv,
             die ("@MLton io-threads missing argument.");
           s->numIOThreads = stringToFloat (argv[i++]);
           s->numberOfProcs += s->numIOThreads;
-        } else if (0 == strcmp (arg, "--")) {
+        } else if (0 == strcmp (arg, "enable-timer")) {
+          i++;
+          if (i == argc)
+            die ("@MLton enable-timer missing argument.");
+          s->enableTimer = TRUE;
+          s->timeInterval = stringToFloat (argv[i++]);
+        }  else if (0 == strcmp (arg, "--")) {
           i++;
           done = TRUE;
         } else if (i > 1)
@@ -381,6 +387,8 @@ int GC_init (GC_state s, int argc, char **argv) {
   s->cumulativeStatistics.numMinorGCs = 0;
   s->numberOfProcs = 1;
   s->numIOThreads = 0;
+  s->enableTimer = FALSE;
+  s->timeInterval = 200;
   s->copiedSize = -1;
   s->procStates = NULL;
   rusageZero (&s->cumulativeStatistics.ru_gc);
@@ -489,6 +497,8 @@ void GC_duplicate (GC_state d, GC_state s) {
   d->lastMajorStatistics = s->lastMajorStatistics;
   d->numberOfProcs = s->numberOfProcs;
   d->numIOThreads = s->numIOThreads;
+  d->enableTimer = s->enableTimer;
+  d->timeInterval = s->timeInterval;
   d->savedThread = BOGUS_OBJPTR;
   d->signalHandlerThread = BOGUS_OBJPTR;
   d->signalsInfo.amInSignalHandler = FALSE;

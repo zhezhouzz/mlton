@@ -518,6 +518,7 @@ fun ofGCField (f: GCField.t): t =
        | CurrentThread => thread ()
        | CurSourceSeqsIndex => word32
        | ExnStack => exnStack ()
+       | FFIOpArgsResPtr => cpointer ()
        | Frontier => cpointer ()
        | GlobalObjptrNonRoot => cpointer ()
        | Limit => cpointer ()

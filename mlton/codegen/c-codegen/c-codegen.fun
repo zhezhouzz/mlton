@@ -1225,7 +1225,8 @@ fun output {program as Machine.Program.T {chunks,
             ; done ()
          end
       val additionalMainArgs =
-         [chunkLabelToString chunkLabel,
+         [C.int (Global.numberOfNonRoot ()),
+          chunkLabelToString chunkLabel,
           labelToStringIndex label]
       val {print, done, ...} = outputC ()
       fun rest () =

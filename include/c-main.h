@@ -18,6 +18,7 @@ static GC_frameIndex returnAddressToFrameIndex (GC_returnAddress ra) {
 
 #define MLtonCallFromC                                                  \
 /* Globals */                                                           \
+PRIVATE int returnToC;                                                  \
 pthread_key_t gcstate_key;                                            \
 void MLton_callFromC (pointer ffiOpArgsResPtr) {                        \
         struct cont cont;                                               \
@@ -88,7 +89,7 @@ void runProfHandler (void* arg) {                                       \
             sigwait (&set, &signum);                                    \
             for (int proc = 0; proc < s->numberOfProcs; proc++) {       \
                GC_state gcState = &s->procStates[proc];                 \
-               if (gcState->profiling.isProfilingTimeOn)                \
+               if (false)                \
                  pthread_kill (gcState->pthread, SIGUSR1);              \
            }                                                            \
         }                                                               \
@@ -179,8 +180,8 @@ void run (void *arg) {                                                  \
         struct cont cont;                                               \
         GC_state s = (GC_state)arg;                                     \
         uint32_t num = Proc_processorNumber (s)                         \
-                * s->controls->affinityStride                           \
-                + s->controls->affinityBase;                            \
+                * s->controls.affinityStride                           \
+                + s->controls.affinityBase;                            \
          if (s->numberOfProcs != 1)                                     \
             set_cpu_affinity(num);                                      \
                                                                         \

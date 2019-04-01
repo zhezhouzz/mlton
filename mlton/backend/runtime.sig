@@ -23,6 +23,7 @@ signature RUNTIME =
              | CurrentThread
              | CurSourceSeqsIndex
              | ExnStack
+             | FFIOpArgsResPtr
              | Frontier (* The place where the next object is allocated. *)
              | GlobalObjptrNonRoot
              | Limit (* frontier + heapSize - LIMIT_SLOP *)
@@ -40,6 +41,7 @@ signature RUNTIME =
                              currentThread: Bytes.t,
                              curSourceSeqsIndex: Bytes.t,
                              exnStack: Bytes.t,
+                             ffiOpArgsResPtr: Bytes.t,
                              frontier: Bytes.t,
                              globalObjptrNonRoot: Bytes.t,
                              limit: Bytes.t,
@@ -54,6 +56,7 @@ signature RUNTIME =
                            currentThread: Bytes.t,
                            curSourceSeqsIndex: Bytes.t,
                            exnStack: Bytes.t,
+                           ffiOpArgsResPtr: Bytes.t,
                            frontier: Bytes.t,
                            globalObjptrNonRoot: Bytes.t,
                            limit: Bytes.t,

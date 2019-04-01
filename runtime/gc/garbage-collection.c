@@ -233,3 +233,8 @@ void GC_collect (GC_state s, size_t bytesRequested, bool force) {
   assert (invariantForMutatorStack(s));
   leave (s);
 }
+
+
+pointer FFI_getOpArgsResPtr (GC_state s) {
+  return s->ffiOpArgsResPtr;
+}

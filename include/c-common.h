@@ -19,6 +19,8 @@
 
 #include "export.h"
 
+#include <pthread.h>
+
 /* A key whose value will be a unique integer per thread */
 extern pthread_key_t gcstate_key;
 
