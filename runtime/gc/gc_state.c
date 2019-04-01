@@ -72,8 +72,8 @@ void setGCStateCurrentHeap (GC_state s,
     fprintf (stderr, "setGCStateCurrentHeap(%s, %s)\n",
              uintmaxToCommaString(oldGenBytesRequested),
              uintmaxToCommaString(nurseryBytesRequested));
-  h = s->heap;
-  assert (h==s->heap);
+  h = &(s->heap);
+  assert (h==&(s->heap));
   assert (isFrontierAligned (s, h->start + h->oldGenSize + oldGenBytesRequested));
   limit = h->start + h->size - bonus;
   nurserySize = h->size - (h->oldGenSize + oldGenBytesRequested) - bonus;
@@ -86,20 +86,20 @@ void setGCStateCurrentHeap (GC_state s,
       /* There is enough space in the generational nursery. */
       and (nurseryBytesRequested <= genNurserySize)
       /* The nursery is large enough to be worth it. */
-      and (((float)(h->size - s->lastMajorStatistics->bytesLive)
+      and (((float)(h->size - s->lastMajorStatistics.bytesLive)
             / (float)nurserySize)
-           <= s->controls->ratios.nursery)
+           <= s->controls.ratios.nursery)
       and /* There is a reason to use generational GC. */
       (
        /* We must use it for debugging purposes. */
        FORCE_GENERATIONAL
        /* We just did a mark compact, so it will be advantageous to to use it. */
-       or (s->lastMajorStatistics->kind == GC_MARK_COMPACT)
+       or (s->lastMajorStatistics.kind == GC_MARK_COMPACT)
        /* The live ratio is low enough to make it worthwhile. */
-       or ((float)h->size / (float)s->lastMajorStatistics->bytesLive
+       or ((float)h->size / (float)s->lastMajorStatistics.bytesLive
            <= (h->size < s->sysvals.ram
-               ? s->controls->ratios.copyGenerational
-               : s->controls->ratios.markCompactGenerational))
+               ? s->controls.ratios.copyGenerational
+               : s->controls.ratios.markCompactGenerational))
        )) {
     s->canMinor = TRUE;
     nursery = genNursery;
@@ -111,13 +111,13 @@ void setGCStateCurrentHeap (GC_state s,
       die ("Out of memory.  Insufficient space in nursery.");
     s->canMinor = FALSE;
   }
-  if (s->controls->restrictAvailableSize
+  if (s->controls.restrictAvailableSize
       and
-      (s->cumulativeStatistics->maxBytesLiveSinceReset > 0)) {
+      (s->cumulativeStatistics.maxBytesLiveSinceReset > 0)) {
     float actualRatio;
     h->availableSize =
-      (size_t)(s->controls->ratios.available
-               * s->cumulativeStatistics->maxBytesLiveSinceReset);
+      (size_t)(s->controls.ratios.available
+               * s->cumulativeStatistics.maxBytesLiveSinceReset);
 
     if ((h->oldGenSize + oldGenBytesRequested + nurserySize + bonus)
         > h->availableSize) {
@@ -158,13 +158,13 @@ void setGCStateCurrentHeap (GC_state s,
     }
 
     actualRatio = (float)h->availableSize
-      / s->cumulativeStatistics->maxBytesLiveSinceReset;
-    if ((DEBUG or s->controls->messages)
+      / s->cumulativeStatistics.maxBytesLiveSinceReset;
+    if ((DEBUG or s->controls.messages)
         and
-        (actualRatio > s->controls->ratios.available)) {
+        (actualRatio > s->controls.ratios.available)) {
       fprintf (stderr,
                "[GC: Can't restrict available ratio to %f, using %f; worst-case max-live is %s bytes.]\n",
-               s->controls->ratios.available, actualRatio,
+               s->controls.ratios.available, actualRatio,
                uintmaxToCommaString(h->oldGenSize + oldGenBytesRequested + nurserySize));
     }
   }
@@ -174,7 +174,7 @@ void setGCStateCurrentHeap (GC_state s,
   }
 
   assert (nurseryBytesRequested <= nurserySize);
-  s->heap->nursery = nursery;
+  s->heap.nursery = nursery;
   frontier = nursery;
 
   if (not duringInit) {

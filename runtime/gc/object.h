@@ -99,6 +99,30 @@ static inline GC_header buildHeaderFromTypeIndex (uint32_t t);
 
 #endif /* (defined (MLTON_GC_INTERNAL_TYPES)) */
 
+#if (defined (MLTON_GC_INTERNAL_TYPES))
+
+/*
+ * Normal objects have the following layout:
+ *
+ * header ::
+ * (non heap-pointers)* ::
+ * (heap pointers)*
+ *
+ * Note that the non heap-pointers denote a sequence of primitive data
+ * values.  These data values need not map directly to values of the
+ * native word size.  MLton's aggressive representation strategies may
+ * pack multiple primitive values into the same native word.
+ * Likewise, a primitive value may span multiple native words (e.g.,
+ * Word64.word on an x86).
+*/
+#define GC_NORMAL_HEADER_SIZE GC_HEADER_SIZE
+
+typedef uint32_t GC_smallGapSize;
+#define GC_SMALL_GAP_SIZE_SIZE sizeof (GC_smallGapSize)
+#define GC_BONUS_SLOP (GC_HEADER_SIZE + GC_SMALL_GAP_SIZE_SIZE)
+
+#endif /* (defined (MLTON_GC_INTERNAL_TYPES)) */
+
 
 /* Sequence objects are described in "sequence.h" */
 

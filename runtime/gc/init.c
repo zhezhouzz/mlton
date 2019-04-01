@@ -345,6 +345,7 @@ int GC_init (GC_state s, int argc, char **argv) {
   s->controls.oldGenSequenceSize = 0x100000;
   s->controls.affinityBase = 0;
   s->controls.affinityStride = 1;
+  s->controls.restrictAvailableSize = FALSE;
   s->controls.ratios.copy = 4.0f;
   s->controls.ratios.copyGenerational = 4.0f;
   s->controls.ratios.grow = 8.0f;
@@ -354,6 +355,7 @@ int GC_init (GC_state s, int argc, char **argv) {
   s->controls.ratios.markCompactGenerational = 8.0f;
   s->controls.ratios.nursery = 10.0f;
   s->controls.ratios.ramSlop = 0.5f;
+  s->controls.ratios.available = 1.1;
   s->controls.ratios.stackCurrentGrow = 2.0f;
   s->controls.ratios.stackCurrentMaxReserved = 32.0f;
   s->controls.ratios.stackCurrentPermitReserved = 4.0f;

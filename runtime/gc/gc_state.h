@@ -64,6 +64,7 @@ struct GC_state {
   struct GC_signalsInfo signalsInfo;
   struct GC_sourceMaps sourceMaps;
   pointer stackBottom; /* Bottom of stack in current thread. */
+  pointer start; /* Like heap->nursery but per processor.  nursery <= start <= frontier */
   int32_t copiedSize;
   int32_t syncReason;
   struct GC_sysvals sysvals;

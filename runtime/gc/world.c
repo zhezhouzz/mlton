@@ -22,7 +22,7 @@ void loadWorldFromFILE (GC_state s, FILE *f) {
   s->callFromCHandlerThread = readObjptr (f);
   s->currentThread = readObjptr (f);
   s->signalHandlerThread = readObjptr (f);
-  createHeap (s, s->heap,
+  createHeap (s, &(s->heap),
               sizeofHeapDesired (s, s->heap.oldGenSize, 0),
               s->heap.oldGenSize);
   setCardMapAndCrossMap (s);
